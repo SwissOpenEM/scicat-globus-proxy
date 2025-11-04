@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -212,15 +212,15 @@ func RestoreGlobusTransferJobsFromScicat(scicatUrl string, serviceUser serviceus
 
 	for _, job := range unfinishedJobs {
 		if job.JobResultObject.GlobusTaskId == "" {
-			log.Printf("Warning: job with id '%s' has no globus task id, so it cannot be resumed\n", job.ID)
+			slog.Warn("job has no globus task id, so it cannot be resumed", "jobId", job.ID)
 			continue
 		}
 		if len(job.JobParams.DatasetList) > 1 {
-			log.Printf("Warning: job with id '%s' has more than one associated dataset (a total of %d), which is not currently supported\n", job.ID, len(job.JobParams.DatasetList))
+			slog.Warn("job has more than one associated dataset, which is not currently supported", "jobId", job.ID, "datasetCount", len(job.JobParams.DatasetList))
 			continue
 		}
 		if len(job.JobParams.DatasetList) <= 0 {
-			log.Printf("Warning: job with id '%s' has no datasets associated, so it cannot be resumed\n", job.ID)
+			slog.Warn("job has no datasets associated, so it cannot be resumed", "jobId", job.ID)
 		}
 		pool.AddTransferTask(job.JobResultObject.GlobusTaskId, job.JobParams.DatasetList[0].Pid, job.ID)
 	}
