@@ -12,9 +12,6 @@ import (
 	"github.com/SwissOpenEM/globus-transfer-service/internal/tasks"
 )
 
-// String can be overwritten by using linker flags: -ldflags "-X main.version=VERSION"
-var version string = "DEVELOPMENT_VERSION"
-
 func setupLogging(logLevel string) {
 	level := slog.LevelDebug
 	switch logLevel {

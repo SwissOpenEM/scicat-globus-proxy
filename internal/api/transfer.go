@@ -199,7 +199,7 @@ func (s ServerHandler) getDataset(scicatPid string, scicatUser User) (ScicatData
 			Message: getPointerOrNil("couldn't create dataset request url"),
 			Details: getPointerOrNil(err.Error()),
 		}
-		slog.Error(*errResponse.Message, "details", *&errResponse.Details)
+		slog.Error(*errResponse.Message, "details", errResponse.Details)
 		return ScicatDataset{}, errResponse
 	}
 
@@ -209,7 +209,7 @@ func (s ServerHandler) getDataset(scicatPid string, scicatUser User) (ScicatData
 			Message: getPointerOrNil("couldn't generate dataset request"),
 			Details: getPointerOrNil(err.Error()),
 		}
-		slog.Error(*errResponse.Message, "details", *&errResponse.Details)
+		slog.Error(*errResponse.Message, "details", errResponse.Details)
 		return ScicatDataset{}, errResponse
 	}
 	datasetReq.Header.Set("Authorization", "Bearer "+scicatUser.ScicatToken)
@@ -222,7 +222,7 @@ func (s ServerHandler) getDataset(scicatPid string, scicatUser User) (ScicatData
 			Message: getPointerOrNil("couldn't send dataset request to scicat backend"),
 			Details: getPointerOrNil(err.Error()),
 		}
-		slog.Error(*errResponse.Message, "details", *&errResponse.Details)
+		slog.Error(*errResponse.Message, "details", errResponse.Details)
 		return ScicatDataset{}, errResponse
 	}
 	defer datasetResp.Body.Close()
@@ -235,7 +235,7 @@ func (s ServerHandler) getDataset(scicatPid string, scicatUser User) (ScicatData
 				Details: getPointerOrNil(fmt.Sprintf("response status '%d', body '%s'", datasetResp.StatusCode, string(body))),
 			},
 		}
-		slog.Error(*errResponse.GeneralErrorResponseJSONResponse.Message, "details", *&errResponse.Details)
+		slog.Error(*errResponse.Message, "details", errResponse.Details)
 		return ScicatDataset{}, errResponse
 	}
 
@@ -245,7 +245,7 @@ func (s ServerHandler) getDataset(scicatPid string, scicatUser User) (ScicatData
 			Message: getPointerOrNil("failed to read response body"),
 			Details: getPointerOrNil(err.Error()),
 		}
-		slog.Error(*errResponse.Message, "details", *&errResponse.Details)
+		slog.Error(*errResponse.Message, "details", errResponse.Details)
 		return ScicatDataset{}, errResponse
 	}
 
@@ -256,7 +256,7 @@ func (s ServerHandler) getDataset(scicatPid string, scicatUser User) (ScicatData
 			Message: getPointerOrNil("failed to unmarshal response body"),
 			Details: getPointerOrNil(err.Error()),
 		}
-		slog.Error(*errResponse.Message, "details", *&errResponse.Details)
+		slog.Error(*errResponse.Message, "details", errResponse.Details)
 		return ScicatDataset{}, errResponse
 	}
 	return dataset, nil
