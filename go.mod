@@ -1,6 +1,6 @@
 module github.com/SwissOpenEM/globus-transfer-service
 
-go 1.23.1
+go 1.24.10
 
 require (
 	github.com/getkin/kin-openapi v0.133.0
