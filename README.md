@@ -30,7 +30,15 @@ You can find an example of the settings at [`example-conf.yaml`](example-conf.ya
  - `port` - the port at which the server should run
  - `facilitySrcGroupTemplate` - the template to use for groups (their names) that allow users to use facilities listed in `facilityCollectionIDs` as the source of their transfer requests
  - `facilityDstGroupTemplate` - same as above, but as the destination of their transfer requests
- - `destinationPathTemplate` - the template to use for determining the path at the destination of the transfer
+ - `destinationPathTemplate` - the template to use for determining the path at the destination of the transfer.
+    The following template variables are supported:
+      - Pid:           dataset `pid` property
+      - PidPrefix:     prefix of the pid (before the slash)
+      - PidShort:      pid with out the prefix
+      - PidEncoded:    url-encoded PID
+      - SourceFolder:  dataset `sourceFolder` property
+      - DatasetFolder: base name of `sourceFolder`
+      - Username:      username of the current scicat user
  - `task` - a set of settings for configuring the handling of transfer tasks
    - `maxConcurrency` - maximum number of transfer tasks executed in parallel
    - `queueSize` - how many tasks can be put in a queue (0 is infinite)

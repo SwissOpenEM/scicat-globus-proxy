@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path"
@@ -57,63 +58,16 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}, nil
 	}
 
-	// fetch related dataset
-	datasetUrl, err := url.JoinPath(s.scicatUrl, "api", "v3", "datasets", url.QueryEscape(request.Params.ScicatPid))
-	if err != nil {
-		return PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("couldn't create dataset request url"),
-			Details: getPointerOrNil(err.Error()),
-		}, nil
+	dataset, errResponse := s.getDataset(request.Params.ScicatPid, scicatUser)
+	if errResponse != nil {
+		return errResponse, nil
 	}
 
-	datasetReq, err := http.NewRequest("GET", datasetUrl, nil)
-	if err != nil {
-		return PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("couldn't generate dataset request"),
-			Details: getPointerOrNil(err.Error()),
-		}, nil
-	}
-	datasetReq.Header.Set("Authorization", "Bearer "+scicatUser.ScicatToken)
-
-	datasetResp, err := http.DefaultClient.Do(datasetReq)
-	if err != nil {
-		return PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("couldn't send dataset request to scicat backend"),
-			Details: getPointerOrNil(err.Error()),
-		}, nil
-	}
-	defer datasetResp.Body.Close()
-
-	if datasetResp.StatusCode != 200 {
-		body, _ := io.ReadAll(datasetResp.Body)
-		return PostTransferTask400JSONResponse{
-			GeneralErrorResponseJSONResponse: GeneralErrorResponseJSONResponse{
-				Message: getPointerOrNil("the dataset with the given pid does not exist or you don't have access rights to it"),
-				Details: getPointerOrNil(fmt.Sprintf("response status '%d', body '%s'", datasetResp.StatusCode, string(body))),
-			},
-		}, nil
-	}
-
-	datasetRespBody, err := io.ReadAll(datasetResp.Body)
-	if err != nil {
-		return PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("failed to read response body"),
-			Details: getPointerOrNil(err.Error()),
-		}, nil
-	}
-
-	var dataset ScicatDataset
-	err = json.Unmarshal(datasetRespBody, &dataset)
-	if err != nil {
-		return PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("failed to unmarshal response body"),
-			Details: getPointerOrNil(err.Error()),
-		}, nil
-	}
-
-	// check for required group memberships
+	// check for required group membership.
+	// facilitySrcGroupTemplate and facilityDstGroupTemplate are checked against the
+	// user's access groups (from Profile.AccessGroups in their user token)
 	var srcGroupBuf bytes.Buffer
-	err = s.srcGroupTemplate.Execute(&srcGroupBuf, GroupTemplateData{FacilityName: request.Params.SourceFacility})
+	err := s.srcGroupTemplate.Execute(&srcGroupBuf, GroupTemplateData{FacilityName: request.Params.SourceFacility})
 	if err != nil {
 		return PostTransferTask500JSONResponse{
 			Message: getPointerOrNil("group templating failed with source facility"),
@@ -233,6 +187,79 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 	return PostTransferTask200JSONResponse{
 		JobId: scicatJob.ID,
 	}, nil
+}
+
+// getDataset fetches a dataset from SciCat
+// Returns the parsed dataset on success, or an HTTP response on errors
+func (s ServerHandler) getDataset(scicatPid string, scicatUser User) (ScicatDataset, PostTransferTaskResponseObject) {
+	// fetch related dataset
+	datasetUrl, err := url.JoinPath(s.scicatUrl, "api", "v3", "datasets", url.QueryEscape(scicatPid))
+	if err != nil {
+		errResponse := PostTransferTask500JSONResponse{
+			Message: getPointerOrNil("couldn't create dataset request url"),
+			Details: getPointerOrNil(err.Error()),
+		}
+		slog.Error(*errResponse.Message, "details", errResponse.Details)
+		return ScicatDataset{}, errResponse
+	}
+
+	datasetReq, err := http.NewRequest("GET", datasetUrl, nil)
+	if err != nil {
+		errResponse := PostTransferTask500JSONResponse{
+			Message: getPointerOrNil("couldn't generate dataset request"),
+			Details: getPointerOrNil(err.Error()),
+		}
+		slog.Error(*errResponse.Message, "details", errResponse.Details)
+		return ScicatDataset{}, errResponse
+	}
+	datasetReq.Header.Set("Authorization", "Bearer "+scicatUser.ScicatToken)
+
+	slog.Debug("Fetching dataset from SciCat", "url", datasetUrl)
+
+	datasetResp, err := http.DefaultClient.Do(datasetReq)
+	if err != nil {
+		errResponse := PostTransferTask500JSONResponse{
+			Message: getPointerOrNil("couldn't send dataset request to scicat backend"),
+			Details: getPointerOrNil(err.Error()),
+		}
+		slog.Error(*errResponse.Message, "details", errResponse.Details)
+		return ScicatDataset{}, errResponse
+	}
+	defer datasetResp.Body.Close()
+
+	if datasetResp.StatusCode != 200 {
+		body, _ := io.ReadAll(datasetResp.Body)
+		errResponse := PostTransferTask400JSONResponse{
+			GeneralErrorResponseJSONResponse: GeneralErrorResponseJSONResponse{
+				Message: getPointerOrNil("the dataset with the given pid does not exist or you don't have access rights to it"),
+				Details: getPointerOrNil(fmt.Sprintf("response status '%d', body '%s'", datasetResp.StatusCode, string(body))),
+			},
+		}
+		slog.Error(*errResponse.Message, "details", errResponse.Details)
+		return ScicatDataset{}, errResponse
+	}
+
+	datasetRespBody, err := io.ReadAll(datasetResp.Body)
+	if err != nil {
+		errResponse := PostTransferTask500JSONResponse{
+			Message: getPointerOrNil("failed to read response body"),
+			Details: getPointerOrNil(err.Error()),
+		}
+		slog.Error(*errResponse.Message, "details", errResponse.Details)
+		return ScicatDataset{}, errResponse
+	}
+
+	var dataset ScicatDataset
+	err = json.Unmarshal(datasetRespBody, &dataset)
+	if err != nil {
+		errResponse := PostTransferTask500JSONResponse{
+			Message: getPointerOrNil("failed to unmarshal response body"),
+			Details: getPointerOrNil(err.Error()),
+		}
+		slog.Error(*errResponse.Message, "details", errResponse.Details)
+		return ScicatDataset{}, errResponse
+	}
+	return dataset, nil
 }
 
 func (s ServerHandler) DeleteTransferTask(ctx context.Context, req DeleteTransferTaskRequestObject) (DeleteTransferTaskResponseObject, error) {

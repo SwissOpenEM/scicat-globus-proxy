@@ -2,7 +2,7 @@ package tasks
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -79,7 +79,7 @@ func (t transferTask) updateTask() (bool, error) {
 	token, err := t.scicatServiceUser.GetToken()
 	if err != nil {
 		errFull := fmt.Errorf("getting token failed, task with scicat job id '%s', dataset pid '%s', globus id '%s' cannot be updated: %s", t.scicatJobId, t.datasetPid, t.globusTaskId, err.Error())
-		log.Println(errFull.Error())
+		slog.Error(errFull.Error())
 		return false, errFull
 	}
 
@@ -195,10 +195,20 @@ func checkTransfer(client globus.GlobusClient, globusTaskId string) (bytesTransf
 	}
 }
 
-func taskLog(sciacatJobId string, globusTaskId string, datasetPid string, bytesTransferred int, filesTransferred int, totalFiles int, status jobs.JobStatus, err error) {
+func taskLog(scicatJobId string, globusTaskId string, datasetPid string, bytesTransferred int, filesTransferred int, totalFiles int, status jobs.JobStatus, err error) {
 	errString := ""
 	if err != nil {
 		errString = err.Error()
 	}
-	log.Printf("'%s' scicat job, '%s' globus task for '%s' dataset - bytes transferred: %d, files transferred: %d, total files detected: %d, status %s, error message: '%s'\n", sciacatJobId, globusTaskId, datasetPid, bytesTransferred, filesTransferred, totalFiles, status, errString)
+	slog.Info(
+		"Task",
+		"scicat job", scicatJobId,
+		"globus task", globusTaskId,
+		"dataset", datasetPid,
+		"bytes transferred", bytesTransferred,
+		"files transferred", filesTransferred,
+		"total files detected", totalFiles,
+		"status", status,
+		"error message", errString,
+	)
 }
