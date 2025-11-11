@@ -45,7 +45,7 @@ require (
 
 require (
 	github.com/SwissOpenEM/globus v0.1.2
-	github.com/alitto/pond/v2 v2.3.0
+	github.com/alitto/pond/v2 v2.5.0
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/bytedance/sonic v1.11.9 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
