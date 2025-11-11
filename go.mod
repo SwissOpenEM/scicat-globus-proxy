@@ -9,7 +9,7 @@ require (
 	github.com/paulscherrerinstitute/scicat-cli/v3 v3.0.0-alpha3.0.20250425074246-2b8f0b3497af
 	github.com/samber/slog-gin v1.18.0
 	github.com/swaggo/files v1.0.1
-	github.com/swaggo/gin-swagger v1.6.0
+	github.com/swaggo/gin-swagger v1.6.1
 )
 
 require (
