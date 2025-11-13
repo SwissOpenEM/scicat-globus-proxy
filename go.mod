@@ -5,7 +5,7 @@ go 1.24.10
 require (
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/gin-gonic/gin v1.10.1
-	github.com/oapi-codegen/runtime v1.1.1
+	github.com/oapi-codegen/runtime v1.1.2
 	github.com/paulscherrerinstitute/scicat-cli/v3 v3.0.0-alpha9
 	github.com/samber/slog-gin v1.18.0
 	github.com/swaggo/files v1.0.1
