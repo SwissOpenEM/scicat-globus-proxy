@@ -23,7 +23,7 @@ type Config struct {
 	} `yaml:"task"`
 }
 
-const confFileName string = "globus-transfer-service-conf.yaml"
+const confFileName string = "SwissOpenEM/scicat-globus-proxy-conf.yaml"
 
 func ReadConfig() (Config, error) {
 	userConfigDir, err := os.UserConfigDir()
@@ -36,7 +36,7 @@ func ReadConfig() (Config, error) {
 	}
 
 	primaryConfPath := filepath.Join(filepath.Dir(executablePath), confFileName)
-	secondaryConfPath := filepath.Join(userConfigDir, "globus-transfer-service", confFileName)
+	secondaryConfPath := filepath.Join(userConfigDir, "SwissOpenEM/scicat-globus-proxy", confFileName)
 
 	var conf Config
 	f, err := os.ReadFile(primaryConfPath)

@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: Globus Transfer Service API
+  title: Scicat Globus Proxy API
   description: |-
-    Rest API for the Globus Transfer Service. It uses Scicat tokens for authentication.
+    Rest API for the Scicat Globus Proxy. It uses Scicat tokens for authentication.
   version: 1.0.0
 tags:
   - name: auth
@@ -12,7 +12,7 @@ tags:
   - name: other
     description: Further operations for general information
 
-paths: 
+paths:
   /transfer:
     post:
       tags:
@@ -54,7 +54,7 @@ paths:
                   items:
                     $ref: "#/components/schemas/FileToTransfer"
 
-      responses: 
+      responses:
         "200":
           description: successfully started a transfer task
           content:
@@ -81,12 +81,12 @@ paths:
         "503":
           description: the server can't currently handle more requests, try again later
           $ref: "#/components/responses/GeneralErrorResponse"
-  /transfer/{scicatJobId}:  
+  /transfer/{scicatJobId}:
     delete:
       tags:
         - transfer
       summary: cancels and/or deletes transfer entry
-      description: allows the user to cancel a transfer and/or delete the job from the scicat job system 
+      description: allows the user to cancel a transfer and/or delete the job from the scicat job system
       operationId: DeleteTransferTask
       parameters:
         - name: scicatJobId
@@ -101,7 +101,7 @@ paths:
           required: false
           schema:
             type: boolean
-        
+
       responses:
         "200":
           description: deletion was carried out successfully
@@ -123,7 +123,7 @@ components:
       type: apiKey
       in: header
       name: SciCat-API-Key
-  
+
   schemas:
     TransferItem:
       type: object
@@ -152,7 +152,7 @@ components:
       properties:
         path:
           type: string
-          description: the path of the file, it has to be relative to the dataset source folder 
+          description: the path of the file, it has to be relative to the dataset source folder
         isSymlink:
           type: boolean
           description: specifies whether this file is a symlink

@@ -15,8 +15,8 @@ import (
 	"slices"
 
 	"github.com/SwissOpenEM/globus"
-	"github.com/SwissOpenEM/globus-transfer-service/internal/tasks"
-	"github.com/SwissOpenEM/globus-transfer-service/jobs"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/tasks"
+	"github.com/SwissOpenEM/scicat-globus-proxy/jobs"
 	"github.com/gin-gonic/gin"
 )
 

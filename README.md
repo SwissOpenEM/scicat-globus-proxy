@@ -1,18 +1,18 @@
-# Globus Transfer Service
+# SciCat Globus Proxy
 
 ## Summary
 
-This service allows for requesting [Globus](https://www.globus.org) transfers using the [Scicat](https://scicatproject.github.io) token. It complements the [Ingestor Service](https://github.com/SwissOpenEM/Ingestor/), and allows users to request globus data transfers without exposing globus credentials to the end user. It also keeps track of ongoing transfers, and their state can be polled from this service.
+This service allows for requesting [Globus](https://www.globus.org) transfers using the [SciCat](https://scicatproject.github.io) token. It complements the [Ingestor Service](https://github.com/SwissOpenEM/Ingestor/), and allows users to request globus data transfers without exposing globus credentials to the end user. It also keeps track of ongoing transfers, and their state can be polled from this service.
 
 It relies on a single globus [service account](https://docs.globus.org/guides/recipes/automate-with-service-account/) to request and track transfers, which can be set using environment variables.
 
-It also assumes that there's a set of possible destinations and sources. Whether it's possible to ingest from the source to the given destination is defined by the Scicat user's current set of groups. The group associations are given to this service as a config.
+It also assumes that there's a set of possible destinations and sources. Whether it's possible to ingest from the source to the given destination is defined by the SciCat user's current set of groups. The group associations are given to this service as a config.
 
 ## Details
 
-![Overview diagram of the Globus Transfer Service](docs/globus-transfer-service-diagram.png)
+![Overview diagram of the SciCat Globus Proxy](docs/SwissOpenEM/scicat-globus-proxy-diagram.png)
 
-The Globus Transfer Service (GTS) is a REST API, documented in the [OpenAPI description](internal/api/openapi.yaml). This is called by the Ingestor Service (3) in when a newly created dataset is ready to be uploaded. The main role of the GTS is to validate the user's SciCat credentials and verify authorization to upload the dataset (4), then to request a globus transfer on the user's behalf (5). This allows globus to be used in environments where end users should not have direct access to globus credentials for security purposes, such as when Globus Guest Collections are not available for isolating user data.
+The SciCat Globus Proxy (GTS) is a REST API, documented in the [OpenAPI description](internal/api/openapi.yaml). This is called by the Ingestor Service (3) in when a newly created dataset is ready to be uploaded. The main role of the GTS is to validate the user's SciCat credentials and verify authorization to upload the dataset (4), then to request a globus transfer on the user's behalf (5). This allows globus to be used in environments where end users should not have direct access to globus credentials for security purposes, such as when Globus Guest Collections are not available for isolating user data.
 
 The transfer status is tracked in a SciCat job. The jobId is returned by the `/transfer` endpoint. GTS will continually update the SciCat job with the current status, which can be queried from the scicat backend:
 

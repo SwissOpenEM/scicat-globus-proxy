@@ -1,4 +1,4 @@
-module github.com/SwissOpenEM/globus-transfer-service
+module github.com/SwissOpenEM/scicat-globus-proxy
 
 go 1.24.10
 

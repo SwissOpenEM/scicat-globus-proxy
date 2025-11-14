@@ -9,15 +9,15 @@ COPY ./internal ./internal
 COPY ./jobs ./jobs
 COPY ./cmd ./cmd
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o ./build/globus_transfer_service ./cmd/api-server/
+RUN CGO_ENABLED=0 GOOS=linux go build -o ./build/scicat_globus_proxy ./cmd/api-server/
 
 FROM alpine:3 AS release
 
 WORKDIR /service
 
-COPY --from=build-stage /app/build/globus_transfer_service ./globus_transfer_service
-COPY ./example-conf.yaml /service/globus-transfer-service-conf.yaml
+COPY --from=build-stage /app/build/scicat_globus_proxy ./scicat_globus_proxy
+COPY ./example-conf.yaml /service/SwissOpenEM/scicat-globus-proxy-conf.yaml
 
 EXPOSE 8080
 
-ENTRYPOINT [ "/service/globus_transfer_service" ]
+ENTRYPOINT [ "/service/scicat_globus_proxy" ]
