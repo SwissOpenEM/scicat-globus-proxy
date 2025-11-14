@@ -1,18 +1,40 @@
 openapi: 3.0.3
 info:
-  title: Scicat Globus Proxy API
+  title: SciCat Globus Proxy API
   description: |-
-    Rest API for the Scicat Globus Proxy. It uses Scicat tokens for authentication.
-  version: 1.0.0
+    Rest API for the SciCat Globus Proxy. It uses Scicat tokens for authentication.
+  version: 1.0.1
 tags:
   - name: auth
     description: Operations related to authentication
   - name: transfer
     description: Operations related to data transfers
-  - name: other
-    description: Further operations for general information
+  - name: health
+    description: Operations relating to service health
 
 paths:
+  /version:
+    get:
+      tags:
+        - health
+      summary: get SciCat Globus Proxy version
+      security: []
+      description: returns the current version of the proxy
+      operationId: GetVersion
+      responses:
+        "200":
+          description: successful response with version information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: the current version of the service
+                required:
+                  - version
+
   /transfer:
     post:
       tags:

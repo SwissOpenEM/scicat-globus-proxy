@@ -2,27 +2,35 @@ package api
 
 import (
 	"embed"
+	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
 
-	"fmt"
-
-	"github.com/gin-gonic/gin"
+	"github.com/getkin/kin-openapi/openapi3filter"
+	gin "github.com/gin-gonic/gin"
+	middleware "github.com/oapi-codegen/gin-middleware"
+	sloggin "github.com/samber/slog-gin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-
-	"log/slog"
-
-	sloggin "github.com/samber/slog-gin"
 )
 
 //go:embed openapi.yaml
 var swaggerYAML embed.FS
 
 func NewServer(api *ServerHandler, port uint, scicatUrl string) (*http.Server, error) {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	swagger, err := GetSwagger()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading swagger spec\n: %s", err)
+		os.Exit(1)
+	}
 
+	// Clear out the servers array in the swagger spec, that skips validating
+	// that server names match.
+	swagger.Servers = nil
+
+	// Create gin router
 	r := gin.New()
 
 	// Add the sloggin middleware to all routes
@@ -31,7 +39,7 @@ func NewServer(api *ServerHandler, port uint, scicatUrl string) (*http.Server, e
 		WithResponseBody: true,
 	}
 
-	r.Use(sloggin.NewWithConfig(logger, config))
+	r.Use(sloggin.NewWithConfig(slog.Default().With(), config))
 	r.Use(gin.Recovery())
 
 	r.GET("/openapi.yaml", func(c *gin.Context) {
@@ -41,7 +49,11 @@ func NewServer(api *ServerHandler, port uint, scicatUrl string) (*http.Server, e
 	r.GET("/docs/*any", ginSwagger.WrapHandler(swaggerfiles.Handler, ginSwagger.URL("/openapi.yaml")))
 
 	r.Use(
-		ScicatTokenAuthMiddleware(scicatUrl),
+		middleware.OapiRequestValidatorWithOptions(swagger, &middleware.Options{
+			Options: openapi3filter.Options{
+				AuthenticationFunc: ScicatTokenAuthMiddleware(scicatUrl),
+			},
+		}),
 	)
 
 	RegisterHandlers(r, NewStrictHandler(api, []StrictMiddlewareFunc{}))
