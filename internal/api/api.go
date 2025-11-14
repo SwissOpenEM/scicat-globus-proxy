@@ -6,8 +6,8 @@ import (
 	"text/template"
 
 	"github.com/SwissOpenEM/globus"
-	"github.com/SwissOpenEM/globus-transfer-service/internal/serviceuser"
-	"github.com/SwissOpenEM/globus-transfer-service/internal/tasks"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/serviceuser"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/tasks"
 )
 
 //go:generate oapi-codegen --config=cfg.yaml openapi.yaml

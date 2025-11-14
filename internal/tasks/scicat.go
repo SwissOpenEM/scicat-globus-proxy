@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/SwissOpenEM/globus-transfer-service/internal/serviceuser"
-	"github.com/SwissOpenEM/globus-transfer-service/jobs"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/serviceuser"
+	"github.com/SwissOpenEM/scicat-globus-proxy/jobs"
 )
 
 type scicatJobPost struct {

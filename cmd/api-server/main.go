@@ -6,10 +6,10 @@ import (
 	"os"
 
 	"github.com/SwissOpenEM/globus"
-	"github.com/SwissOpenEM/globus-transfer-service/internal/api"
-	"github.com/SwissOpenEM/globus-transfer-service/internal/config"
-	"github.com/SwissOpenEM/globus-transfer-service/internal/serviceuser"
-	"github.com/SwissOpenEM/globus-transfer-service/internal/tasks"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/api"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/config"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/serviceuser"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/tasks"
 )
 
 func setupLogging(logLevel string) {

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/SwissOpenEM/globus"
-	"github.com/SwissOpenEM/globus-transfer-service/internal/serviceuser"
-	"github.com/SwissOpenEM/globus-transfer-service/jobs"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/serviceuser"
+	"github.com/SwissOpenEM/scicat-globus-proxy/jobs"
 	"github.com/paulscherrerinstitute/scicat-cli/v3/datasetIngestor"
 )
 

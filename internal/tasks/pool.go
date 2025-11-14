@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/SwissOpenEM/globus"
-	"github.com/SwissOpenEM/globus-transfer-service/internal/serviceuser"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/serviceuser"
 	"github.com/alitto/pond/v2"
 )
 
