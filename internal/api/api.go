@@ -1,5 +1,6 @@
 package api
 
+//go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=cfg.yaml openapi.yaml
 import (
 	"fmt"
 	"sync"
@@ -9,8 +10,6 @@ import (
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/serviceuser"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/tasks"
 )
-
-//go:generate oapi-codegen --config=cfg.yaml openapi.yaml
 
 type ServerHandler struct {
 	version               string
