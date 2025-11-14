@@ -20,36 +20,40 @@ The transfer status is tracked in a SciCat job. The jobId is returned by the `/t
 curl -H 'accept: application/json' '${scicatUrl}/api/v4/jobs/${jobId}' \
 ```
 
+The swagger docs are accessible on running instances at `/docs/index.html`. The OpenAPI spec is available at `/openapi.yaml`.
+
 ## Configuration
 
 You can find an example of the settings at [`example-conf.yaml`](example-conf.yaml)
 
- - `scicatUrl` - the **base** url fo the instance of scicat to use (without the `/api/v[X]` part)
- - `facilityCollectionIDs` - a map of facility names (identifiers) to their collection id's
- - `globusScopes` - the scopes to use for the client connection. Access is required to transfer api and specific collections
- - `port` - the port at which the server should run
- - `facilitySrcGroupTemplate` - the template to use for groups (their names) that allow users to use facilities listed in `facilityCollectionIDs` as the source of their transfer requests
- - `facilityDstGroupTemplate` - same as above, but as the destination of their transfer requests
- - `destinationPathTemplate` - the template to use for determining the path at the destination of the transfer.
-    The following template variables are supported:
-      - Pid:           dataset `pid` property
-      - PidPrefix:     prefix of the pid (before the slash)
-      - PidShort:      pid with out the prefix
-      - PidEncoded:    url-encoded PID
-      - SourceFolder:  dataset `sourceFolder` property
-      - DatasetFolder: base name of `sourceFolder`
-      - Username:      username of the current scicat user
- - `task` - a set of settings for configuring the handling of transfer tasks
-   - `maxConcurrency` - maximum number of transfer tasks executed in parallel
-   - `queueSize` - how many tasks can be put in a queue (0 is infinite)
-   - `pollInterval` - the amount of seconds to wait before a task polls Globus again to update the status of the transfer
+- `scicatUrl` - the **base** url fo the instance of scicat to use (without the `/api/v[X]` part)
+- `facilityCollectionIDs` - a map of facility names (identifiers) to their collection id's
+- `globusScopes` - the scopes to use for the client connection. Access is required to transfer api and specific collections
+- `port` - the port at which the server should run
+- `facilitySrcGroupTemplate` - the template to use for groups (their names) that allow users to use facilities listed in `facilityCollectionIDs` as the source of their transferrequests
+- `facilityDstGroupTemplate` - same as above, but as the destination of their transfer requests
+- `destinationPathTemplate` - the template to use for determining the path at the
+  destination of the transfer. The following template variables are supported:
+  - Pid:           dataset `pid` property
+  - PidPrefix:     prefix of the pid (before the slash)
+  - PidShort:      pid with out the prefix
+  - PidEncoded:    url-encoded PID
+  - SourceFolder:  dataset `sourceFolder` property
+  - DatasetFolder: base name of `sourceFolder`
+  - Username:      username of the current scicat user
+- `task` - a set of settings for configuring the handling of transfer tasks
+  - `maxConcurrency` - maximum number of transfer tasks executed in parallel
+  - `queueSize` - how many tasks can be put in a queue (0 is infinite)
+  - `pollInterval` - the amount of seconds to wait before a task polls Globus again to update the status of the transfer
 
 ## Environment variables
 
- - `GLOBUS_CLIENT_ID` - the client id for the service account (2-legged OAUTH, trusted client model)
- - `GLOBUS_CLIENT_SECRET` - the client secret for the service account (2-legged OAUTH, trusted client model)
- - `SCICAT_SERVICE_USER_USERNAME` - the username for the service user to use for creating transfer jobs in scicat
- - `SCICAT_SERVICE_USER_PASSWORD` - the above user's password
+- `GLOBUS_CLIENT_ID` - the client id for the service account (2-legged OAUTH, trusted client model)
+- `GLOBUS_CLIENT_SECRET` - the client secret for the service account (2-legged OAUTH, trusted client model)
+- `SCICAT_SERVICE_USER_USERNAME` - the username for the service user to use for creating transfer jobs in scicat
+- `SCICAT_SERVICE_USER_PASSWORD` - the above user's password
 
 ## Docker images
-Docker images are built and pushed for every modification and tags added to the `master` branch
+
+Docker images are built and pushed for every modification and tags added to the `main`
+branch.

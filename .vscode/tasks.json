@@ -14,6 +14,7 @@
                 "dev",
                 "-gcflags",
                 "all=-N -l",
+                "-ldflags", "-X main.version=VSCODE_DEV_BUILD",
                 "-o",
                 "build/server"
             ]

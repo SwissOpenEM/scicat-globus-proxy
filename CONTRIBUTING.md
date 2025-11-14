@@ -7,6 +7,12 @@ cd cmd/api-server
 go build .
 ```
 
+A version string can be included during building with
+
+```sh
+go build -ldflags "-X main.version=VERSION" .
+```
+
 ## Linting
 
 Ensure that `go.mod` and `go.sum` are up-to-date:

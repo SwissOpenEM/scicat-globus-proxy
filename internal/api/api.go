@@ -13,6 +13,7 @@ import (
 //go:generate oapi-codegen --config=cfg.yaml openapi.yaml
 
 type ServerHandler struct {
+	version               string
 	globusClient          globus.GlobusClient
 	scicatUrl             string
 	scicatServiceUser     serviceuser.ScicatServiceUser
@@ -24,14 +25,9 @@ type ServerHandler struct {
 	addTaskMutex          *sync.Mutex
 }
 
-type ScicatDataset struct {
-	OwnerGroup   string `json:"ownerGroup"`
-	SourceFolder string `json:"sourceFolder"`
-}
-
 var _ StrictServerInterface = ServerHandler{}
 
-func NewServerHandler(globusClient globus.GlobusClient, scopes []string, scicatUrl string, scicatServiceUser serviceuser.ScicatServiceUser, facilityCollectionIDs map[string]string, srcGroupTemplateBody string, dstGroupTemplateBody string, dstPathTemplateBody string, taskPool tasks.TaskPool) (ServerHandler, error) {
+func NewServerHandler(version string, globusClient globus.GlobusClient, scopes []string, scicatUrl string, scicatServiceUser serviceuser.ScicatServiceUser, facilityCollectionIDs map[string]string, srcGroupTemplateBody string, dstGroupTemplateBody string, dstPathTemplateBody string, taskPool tasks.TaskPool) (ServerHandler, error) {
 	// create server with service client
 	var err error
 	if !globusClient.IsClientSet() {
@@ -54,6 +50,7 @@ func NewServerHandler(globusClient globus.GlobusClient, scopes []string, scicatU
 	}
 
 	return ServerHandler{
+		version:               version,
 		scicatUrl:             scicatUrl,
 		scicatServiceUser:     scicatServiceUser,
 		globusClient:          globusClient,
@@ -66,6 +63,7 @@ func NewServerHandler(globusClient globus.GlobusClient, scopes []string, scicatU
 	}, err
 }
 
+// Helper to get a pointer to a literal value
 func getPointerOrNil[T comparable](v T) *T {
 	var a T
 	if a == v {

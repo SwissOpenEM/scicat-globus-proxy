@@ -12,6 +12,9 @@ import (
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/tasks"
 )
 
+// String can be overwritten by using linker flags: -ldflags "-X main.version=VERSION"
+var version string = "DEVELOPMENT_VERSION"
+
 func setupLogging(logLevel string) {
 	level := slog.LevelDebug
 	switch logLevel {
@@ -31,6 +34,8 @@ func setupLogging(logLevel string) {
 }
 
 func main() {
+	slog.Info("Starting globus service", "Version", version)
+
 	setupLogging("Debug")
 
 	globusClientId := os.Getenv("GLOBUS_CLIENT_ID")
@@ -64,7 +69,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	serverHandler, err := api.NewServerHandler(globusClient, conf.GlobusScopes, conf.ScicatUrl, serviceUser, conf.FacilityCollectionIDs, conf.FacilitySrcGroupTemplate, conf.FacilityDstGroupTemplate, conf.DstPathTemplate, taskPool)
+	serverHandler, err := api.NewServerHandler(version, globusClient, conf.GlobusScopes, conf.ScicatUrl, serviceUser, conf.FacilityCollectionIDs, conf.FacilitySrcGroupTemplate, conf.FacilityDstGroupTemplate, conf.DstPathTemplate, taskPool)
 	if err != nil {
 		slog.Error("couldn't create server handler", "error", err)
 		os.Exit(1)

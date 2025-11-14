@@ -3,22 +3,24 @@ package api
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
 	"net/url"
 	"path"
 	"reflect"
 	"slices"
 
 	"github.com/SwissOpenEM/globus"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/scicat"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/tasks"
 	"github.com/SwissOpenEM/scicat-globus-proxy/jobs"
 	"github.com/gin-gonic/gin"
 )
+
+type GroupTemplateData struct {
+	FacilityName string
+}
 
 func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransferTaskRequestObject) (PostTransferTaskResponseObject, error) {
 	ginCtx, ok := ctx.(*gin.Context)
@@ -42,6 +44,7 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}, nil
 	}
 
+	// User should have been cached in the context from the auth middleware
 	u, ok := ginCtx.Get("scicatUser")
 	if !ok {
 		return PostTransferTask500JSONResponse{
@@ -50,7 +53,7 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 	}
 
 	// fetch scicat user
-	scicatUser, ok := u.(User)
+	scicatUser, ok := u.(scicat.User)
 	if !ok {
 		return PostTransferTask500JSONResponse{
 			Message: getPointerOrNil("invalid user in context"),
@@ -58,16 +61,49 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}, nil
 	}
 
-	dataset, errResponse := s.getDataset(request.Params.ScicatPid, scicatUser)
-	if errResponse != nil {
-		return errResponse, nil
+	scicatService := scicat.ScicatService{
+		Url:   s.scicatUrl,
+		Token: scicatUser.ScicatToken,
+	}
+
+	dataset, err := scicatService.GetDataset(request.Params.ScicatPid)
+	if err != nil {
+		slog.Error("error fetching dataset from scicat", "error", err)
+
+		var httpErr *scicat.HttpError
+		if errors.As(err, &httpErr) {
+			switch httpErr.StatusCode {
+			case 400, 401, 403:
+				return PostTransferTask400JSONResponse{
+					GeneralErrorResponseJSONResponse{
+						Message: getPointerOrNil(httpErr.Message),
+						Details: getPointerOrNil(httpErr.Details),
+					},
+				}, nil
+			default:
+				return PostTransferTask500JSONResponse{
+					Message: getPointerOrNil(httpErr.Message),
+					Details: getPointerOrNil(httpErr.Details),
+				}, nil
+			}
+		}
+		var detailedResponse scicat.DetailedError
+		if errors.As(err, &detailedResponse) {
+			return PostTransferTask500JSONResponse{
+				Message: getPointerOrNil(detailedResponse.Error()),
+				Details: getPointerOrNil(detailedResponse.Details),
+			}, nil
+		}
+		return PostTransferTask500JSONResponse{
+			Message: getPointerOrNil("unable to fetch dataset " + request.Params.ScicatPid),
+		}, nil
 	}
 
 	// check for required group membership.
 	// facilitySrcGroupTemplate and facilityDstGroupTemplate are checked against the
 	// user's access groups (from Profile.AccessGroups in their user token)
 	var srcGroupBuf bytes.Buffer
-	err := s.srcGroupTemplate.Execute(&srcGroupBuf, GroupTemplateData{FacilityName: request.Params.SourceFacility})
+	err = s.srcGroupTemplate.Execute(&srcGroupBuf, GroupTemplateData{FacilityName: request.Params.SourceFacility})
 	if err != nil {
 		return PostTransferTask500JSONResponse{
 			Message: getPointerOrNil("group templating failed with source facility"),
@@ -189,79 +225,6 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 	}, nil
 }
 
-// getDataset fetches a dataset from SciCat
-// Returns the parsed dataset on success, or an HTTP response on errors
-func (s ServerHandler) getDataset(scicatPid string, scicatUser User) (ScicatDataset, PostTransferTaskResponseObject) {
-	// fetch related dataset
-	datasetUrl, err := url.JoinPath(s.scicatUrl, "api", "v3", "datasets", url.QueryEscape(scicatPid))
-	if err != nil {
-		errResponse := PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("couldn't create dataset request url"),
-			Details: getPointerOrNil(err.Error()),
-		}
-		slog.Error(*errResponse.Message, "details", errResponse.Details)
-		return ScicatDataset{}, errResponse
-	}
-
-	datasetReq, err := http.NewRequest("GET", datasetUrl, nil)
-	if err != nil {
-		errResponse := PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("couldn't generate dataset request"),
-			Details: getPointerOrNil(err.Error()),
-		}
-		slog.Error(*errResponse.Message, "details", errResponse.Details)
-		return ScicatDataset{}, errResponse
-	}
-	datasetReq.Header.Set("Authorization", "Bearer "+scicatUser.ScicatToken)
-
-	slog.Debug("Fetching dataset from SciCat", "url", datasetUrl)
-
-	datasetResp, err := http.DefaultClient.Do(datasetReq)
-	if err != nil {
-		errResponse := PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("couldn't send dataset request to scicat backend"),
-			Details: getPointerOrNil(err.Error()),
-		}
-		slog.Error(*errResponse.Message, "details", errResponse.Details)
-		return ScicatDataset{}, errResponse
-	}
-	defer datasetResp.Body.Close()
-
-	if datasetResp.StatusCode != 200 {
-		body, _ := io.ReadAll(datasetResp.Body)
-		errResponse := PostTransferTask400JSONResponse{
-			GeneralErrorResponseJSONResponse: GeneralErrorResponseJSONResponse{
-				Message: getPointerOrNil("the dataset with the given pid does not exist or you don't have access rights to it"),
-				Details: getPointerOrNil(fmt.Sprintf("response status '%d', body '%s'", datasetResp.StatusCode, string(body))),
-			},
-		}
-		slog.Error(*errResponse.Message, "details", errResponse.Details)
-		return ScicatDataset{}, errResponse
-	}
-
-	datasetRespBody, err := io.ReadAll(datasetResp.Body)
-	if err != nil {
-		errResponse := PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("failed to read response body"),
-			Details: getPointerOrNil(err.Error()),
-		}
-		slog.Error(*errResponse.Message, "details", errResponse.Details)
-		return ScicatDataset{}, errResponse
-	}
-
-	var dataset ScicatDataset
-	err = json.Unmarshal(datasetRespBody, &dataset)
-	if err != nil {
-		errResponse := PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("failed to unmarshal response body"),
-			Details: getPointerOrNil(err.Error()),
-		}
-		slog.Error(*errResponse.Message, "details", errResponse.Details)
-		return ScicatDataset{}, errResponse
-	}
-	return dataset, nil
-}
-
 func (s ServerHandler) DeleteTransferTask(ctx context.Context, req DeleteTransferTaskRequestObject) (DeleteTransferTaskResponseObject, error) {
 	ginCtx, ok := ctx.(*gin.Context)
 	if !ok {
@@ -278,7 +241,7 @@ func (s ServerHandler) DeleteTransferTask(ctx context.Context, req DeleteTransfe
 		}, nil
 	}
 
-	scicatUser, ok := u.(User)
+	scicatUser, ok := u.(scicat.User)
 	if !ok {
 		return DeleteTransferTask500JSONResponse{
 			Message: getPointerOrNil("invalid user in context"),
