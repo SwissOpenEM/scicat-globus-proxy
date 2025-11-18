@@ -35,14 +35,14 @@ The configuration file `scicat-globus-proxy.config.yaml` can be put into two loc
 
    See <https://pkg.go.dev/os#UserConfigDir/> for details.
 
-You can find an example of the settings at [`example-conf.yaml`](example-conf.yaml)
+You can find an example of the settings at [`scicat-globus-proxy-config.example.yaml`](scicat-globus-proxy-config.example.yaml)
 
 - `scicatUrl` - the **base** url fo the instance of scicat to use (without the `/api/v[X]` part). (required)
 - `port` - the port at which the server should run. (required)
 - `facilities` - a list of facilities available for transfer. Facilities have the following properties:
-  - `name` - a unique name for the facility, used in transfer requests (required)
-  - `collection` - the globus collection ID (required)
-  - `scopes` - the globus scopes to use for the client connection. Access is required to transfer api and specific collections. Default: `["urn:globus:auth:scope:transfer.api.globus.org:all[*https://auth.globus.org/scopes/{{.collection}}/data_access]"]`. Available template variables:
+  - `Name` - a unique name for the facility, used in transfer requests (required)
+  - `Collection` - the globus collection ID (required)
+  - `Scopes` - the globus scopes to use for the client connection. Access is required to transfer api and specific collections. Default: `["urn:globus:auth:scope:transfer.api.globus.org:all[*https://auth.globus.org/scopes/{{.Collection}}/data_access]"]`. Available template variables:
     - `Name`
     - `Collection`
   - `accessPath` - a path relative to the OAuth identity to find authentication information granting access to this facility. Should point to an array of strings. Default: `profile.accessGroups`
@@ -79,3 +79,10 @@ You can find an example of the settings at [`example-conf.yaml`](example-conf.ya
 
 Docker images are built and pushed for every modification and tags added to the `main`
 branch.
+
+The docker image expects a configuration file to be mounted at `/service/scicat-globus-proxy-config.yaml`.
+
+```sh
+docker build -t scicat-globus-proxy .
+docker run --rm -v $PWD/scicat-globus-proxy-config.yaml:/service/scicat-globus-proxy-config.yaml --env-file=.env scicat-globus-proxy
+```

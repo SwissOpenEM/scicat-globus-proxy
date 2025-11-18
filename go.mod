@@ -5,7 +5,9 @@ go 1.24.10
 require (
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/gin-gonic/gin v1.11.0
+	github.com/goccy/go-yaml v1.18.0
 	github.com/oapi-codegen/gin-middleware v1.0.2
+	github.com/oapi-codegen/oapi-codegen/v2 v2.5.1
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/paulscherrerinstitute/scicat-cli/v3 v3.0.0-alpha9
 	github.com/samber/slog-gin v1.18.0
@@ -25,12 +27,10 @@ require (
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/go-openapi/jsonreference v0.19.6 // indirect
 	github.com/go-openapi/spec v0.20.4 // indirect
-	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mcuadros/go-version v0.0.0-20190830083331-035f6764e8d2 // indirect
-	github.com/oapi-codegen/oapi-codegen/v2 v2.5.1 // indirect
 	github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037 // indirect
 	github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -87,7 +87,7 @@ require (
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
 	google.golang.org/protobuf v1.36.9 // indirect
-	gopkg.in/yaml.v3 v3.0.1
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen

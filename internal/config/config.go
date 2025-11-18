@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	util "github.com/SwissOpenEM/scicat-globus-proxy/internal/util"
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 type Config struct {
@@ -74,7 +74,7 @@ func NewFacilityConfig() *FacilityConfig {
 	return &FacilityConfig{
 		Collection: "",
 		Scopes: []string{
-			"urn:globus:auth:scope:transfer.api.globus.org:all[*https://auth.globus.org/scopes/{{.collection}}/data_access]",
+			"urn:globus:auth:scope:transfer.api.globus.org:all[*https://auth.globus.org/scopes/{{.Collection}}/data_access]",
 		},
 		AccessPath:         "profile.accessGroups",
 		AccessValue:        "{{ .Name }}",
@@ -91,6 +91,9 @@ func (base *FacilityConfig) Merge(overrides *FacilityConfig) *FacilityConfig {
 		return base
 	}
 
+	if overrides.Name != "" {
+		base.Name = overrides.Name
+	}
 	if overrides.Collection != "" {
 		base.Collection = overrides.Collection
 	}
@@ -136,17 +139,19 @@ func ReadConfig() (Config, error) {
 	primaryConfPath := filepath.Join(filepath.Dir(executablePath), confFileName)
 	secondaryConfPath := filepath.Join(userConfigDir, "scicat-globus-proxy", confFileName)
 
-	var conf Config
 	f, err := os.ReadFile(primaryConfPath)
-	if err == nil {
-		err = yaml.Unmarshal(f, &conf)
-	} else {
+	if err != nil {
 		f, err = os.ReadFile(secondaryConfPath)
-		if err != nil {
-			return Config{}, fmt.Errorf("no config file found at \"%s\" or \"%s\"", primaryConfPath, secondaryConfPath)
-		}
-		err = yaml.Unmarshal(f, &conf)
 	}
+	if err != nil {
+		return Config{}, fmt.Errorf("no config file found at \"%s\" or \"%s\"", primaryConfPath, secondaryConfPath)
+	}
+	return ReadConfigFromBytes(f)
+}
+
+func ReadConfigFromBytes(contents []byte) (Config, error) {
+	var conf Config
+	err := yaml.Unmarshal(contents, &conf)
 
 	// Set defaults
 	task := NewTaskConfig()
@@ -160,6 +165,12 @@ func ReadConfig() (Config, error) {
 	}
 
 	// Validate required fields
+	if conf.ScicatUrl == "" {
+		return Config{}, fmt.Errorf("missing ScicatUrl in configuration")
+	}
+	if len(conf.Facilities) == 0 {
+		return Config{}, fmt.Errorf("no facilities defined in configuration")
+	}
 	for i, facility := range conf.Facilities {
 		if facility.Name == "" {
 			return Config{}, fmt.Errorf("missing Name for facility %v", i)

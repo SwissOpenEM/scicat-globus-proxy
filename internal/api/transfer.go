@@ -20,14 +20,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type GroupTemplateData struct {
-	FacilityName string
-}
-
 // check for required group membership.
 // facilitySrcGroupTemplate and facilityDstGroupTemplate are checked against the
 // user's access groups (from Profile.AccessGroups in their user token)
-func checkAuthorization(scicatUser *User, srcFacility *Facility, dstFacility *Facility, dataset *ScicatDataset) (bool, string, error) {
+func checkAuthorization(scicatUser *scicat.User, srcFacility *Facility, dstFacility *Facility, dataset *scicat.ScicatDataset) (bool, string, error) {
 	// Source access
 	srcContext := accessPathContext{Name: srcFacility.Name}
 	srcAccessPath, err := srcFacility.AccessPath.ExecuteStr(srcContext)
@@ -172,14 +168,14 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 
 	ok, msg, err := checkAuthorization(&scicatUser, &srcFacility, &dstFacility, &dataset)
 	if err != nil {
-		slog.Error("checkAuthorization returned an error", err)
+		slog.Error("checkAuthorization returned an error", "error", err)
 		return PostTransferTask500JSONResponse{
 			Message: getPointerOrNil("you don't have the required access groups to request this transfer"),
 			Details: getPointerOrNil(msg),
 		}, nil
 	}
 	if !ok {
-		slog.Error("user not authorized", msg)
+		slog.Error("user not authorized", "message", msg)
 		return PostTransferTask401JSONResponse{
 			Message: getPointerOrNil("you don't have the required access groups to request this transfer"),
 			Details: getPointerOrNil(msg),
@@ -187,8 +183,8 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 	}
 
 	// Check that the dataset is within the globus collection on the source
-	var relativeSourceFolder string = dataset.SourceFolder
-	if srcFacility.CollectionRootPath != "" {
+	var relativeSourceFolder = dataset.SourceFolder
+	if srcFacility.CollectionRootPath != nil {
 		context := scopeContext{
 			Name: srcFacility.Name,
 		}
@@ -226,7 +222,7 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		Username:             scicatUser.Profile.Username,
 	}
 
-	srcPath, err := srcFacility.SourcePath.Execute(params)
+	srcPath, err := srcFacility.SourcePath.ExecuteStr(params)
 	if err != nil {
 		return PostTransferTask500JSONResponse{
 			Message: getPointerOrNil("couldn't template source folder for the transfer"),
@@ -234,7 +230,7 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}, nil
 	}
 
-	destPath, err := dstFacility.DestinationPath.Execute(params)
+	destPath, err := dstFacility.DestinationPath.ExecuteStr(params)
 	if err != nil {
 		return PostTransferTask500JSONResponse{
 			Message: getPointerOrNil("couldn't template destination folder for the transfer"),
@@ -271,10 +267,10 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 			paths[i] = file.Path
 			isSymlinks[i] = file.IsSymlink
 		}
-		globusResult, err = s.globusClient.TransferFileList(sourceCollectionID, sourcePath, destCollectionID, destPath, paths, isSymlinks, false)
+		globusResult, err = s.globusClient.TransferFileList(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, paths, isSymlinks, false)
 	} else {
 		// sync folders through globus
-		globusResult, err = s.globusClient.TransferFolderSync(sourceCollectionID, sourcePath, destCollectionID, destPath, false)
+		globusResult, err = s.globusClient.TransferFolderSync(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, false)
 	}
 	if err != nil {
 		return PostTransferTask400JSONResponse{

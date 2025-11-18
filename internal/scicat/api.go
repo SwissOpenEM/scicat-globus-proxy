@@ -49,8 +49,8 @@ type User struct {
 	V           int       `json:"__v"`
 	ScicatToken string
 }
-
 type ScicatDataset struct {
+	Pid          string `json:"pid"`
 	OwnerGroup   string `json:"ownerGroup"`
 	SourceFolder string `json:"sourceFolder"`
 }

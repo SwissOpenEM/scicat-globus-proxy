@@ -55,18 +55,15 @@ func NewFacility(config config.FacilityConfig) (*Facility, error) {
 	if err != nil {
 		return nil, err
 	}
-	f.CollectionRootPath, err = util.NewTypedTemplate[scopeContext](config.CollectionRootPath)
-	if err != nil {
-		return nil, err
+	if config.CollectionRootPath == "" {
+		f.CollectionRootPath = nil
+	} else {
+		f.CollectionRootPath, err = util.NewTypedTemplate[scopeContext](config.CollectionRootPath)
+		if err != nil {
+			return nil, err
+		}
 	}
-
 	return f, nil
-}
-
-type ScicatDataset struct {
-	Pid          string `json:"pid"`
-	OwnerGroup   string `json:"ownerGroup"`
-	SourceFolder string `json:"sourceFolder"`
 }
 
 var _ StrictServerInterface = ServerHandler{}
