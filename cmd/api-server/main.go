@@ -38,6 +38,7 @@ func main() {
 
 	setupLogging("Debug")
 
+	// Read configuration
 	globusClientId := os.Getenv("GLOBUS_CLIENT_ID")
 	globusClientSecret := os.Getenv("GLOBUS_CLIENT_SECRET")
 	scicatServiceUserUsername := os.Getenv("SCICAT_SERVICE_USER_USERNAME")
@@ -49,19 +50,33 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize Service User
 	serviceUser, err := serviceuser.CreateServiceUser(conf.ScicatUrl, scicatServiceUserUsername, scicatServiceUserPassword)
 	if err != nil {
 		slog.Error("couldn't create service user", "error", err)
 		os.Exit(1)
 	}
 
-	globusClient, err := globus.AuthCreateServiceClient(context.Background(), globusClientId, globusClientSecret, conf.GlobusScopes)
+	// Initialize Globus user
+	globusScopes, err := conf.GetGlobusScopes()
+	if err != nil {
+		slog.Error("error reading configuration", "error", err)
+		os.Exit(1)
+	}
+
+	globusClient, err := globus.AuthCreateServiceClient(context.Background(), globusClientId, globusClientSecret, globusScopes)
 	if err != nil {
 		slog.Error("couldn't create globus client", "error", err)
 		os.Exit(1)
 	}
 
-	taskPool := tasks.CreateTaskPool(conf.ScicatUrl, globusClient, serviceUser, conf.Task.MaxConcurrency, conf.Task.QueueSize, conf.Task.PollInterval)
+	// Initialize task pool
+	maxConcurrency := conf.Task.MaxConcurrency
+	if conf.Task.MaxConcurrency == 0 {
+		maxConcurrency = 10
+	}
+
+	taskPool := tasks.CreateTaskPool(conf.ScicatUrl, globusClient, serviceUser, maxConcurrency, conf.Task.QueueSize, conf.Task.PollInterval)
 
 	err = tasks.RestoreGlobusTransferJobsFromScicat(conf.ScicatUrl, serviceUser, taskPool)
 	if err != nil {
@@ -69,7 +84,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	serverHandler, err := api.NewServerHandler(version, globusClient, conf.GlobusScopes, conf.ScicatUrl, serviceUser, conf.FacilityCollectionIDs, conf.FacilitySrcGroupTemplate, conf.FacilityDstGroupTemplate, conf.DstPathTemplate, taskPool)
+	facilities := make(map[string]api.Facility, len(conf.Facilities))
+	for _, facConf := range conf.Facilities {
+		if _, exists := facilities[facConf.Name]; exists {
+			slog.Error("duplicate facility. Overwriting previous values", "Name", facConf.Name)
+		}
+		facility, err := api.NewFacility(facConf)
+		if err != nil {
+			slog.Error("unable to configure facility", "Name", facConf.Name, "error", err)
+			os.Exit(1)
+		}
+		facilities[facConf.Name] = *facility
+	}
+
+	serverHandler, err := api.NewServerHandler(version, globusClient, conf.ScicatUrl, serviceUser, &facilities, taskPool)
 	if err != nil {
 		slog.Error("couldn't create server handler", "error", err)
 		os.Exit(1)

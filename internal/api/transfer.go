@@ -1,25 +1,77 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
 	"path"
+	"path/filepath"
 	"reflect"
 	"slices"
 
 	"github.com/SwissOpenEM/globus"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/config"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/scicat"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/tasks"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/util"
 	"github.com/SwissOpenEM/scicat-globus-proxy/jobs"
 	"github.com/gin-gonic/gin"
 )
 
 type GroupTemplateData struct {
 	FacilityName string
+}
+
+// check for required group membership.
+// facilitySrcGroupTemplate and facilityDstGroupTemplate are checked against the
+// user's access groups (from Profile.AccessGroups in their user token)
+func checkAuthorization(scicatUser *User, srcFacility *Facility, dstFacility *Facility, dataset *ScicatDataset) (bool, string, error) {
+	// Source access
+	srcContext := accessPathContext{Name: srcFacility.Name}
+	srcAccessPath, err := srcFacility.AccessPath.ExecuteStr(srcContext)
+	if err != nil {
+		return false, "", err
+	}
+	srcAccessValue, err := srcFacility.AccessValue.ExecuteStr(srcContext)
+	if err != nil {
+		return false, "", err
+	}
+	srcAllowed, err := util.CheckProperty(scicatUser, srcAccessPath, srcAccessValue)
+	if err != nil {
+		return false, "", err
+	}
+	if !srcAllowed {
+		slog.Info("User lacks access")
+		return false, fmt.Sprintf("No access to facility %v", srcFacility.Name), nil
+	}
+
+	// Destination access
+	dstContext := accessPathContext{Name: dstFacility.Name}
+	dstAccessPath, err := srcFacility.AccessPath.ExecuteStr(dstContext)
+	if err != nil {
+		return false, "", err
+	}
+	dstAccessValue, err := srcFacility.AccessValue.ExecuteStr(dstContext)
+	if err != nil {
+		return false, "", err
+	}
+	dstAllowed, err := util.CheckProperty(scicatUser, dstAccessPath, dstAccessValue)
+	if err != nil {
+		return false, "", err
+	}
+	if !dstAllowed {
+		return false, fmt.Sprintf("No access to facility %v", dstFacility.Name), nil
+	}
+
+	// Dataset access
+	// TODO is OwnerGroup necessary and sufficient? We already know the user has read permission.
+	if !slices.Contains(scicatUser.Profile.AccessGroups, dataset.OwnerGroup) {
+		return false, fmt.Sprintf("No access to dataset %v", dataset.Pid), nil
+	}
+
+	return true, "", nil
 }
 
 func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransferTaskRequestObject) (PostTransferTaskResponseObject, error) {
@@ -31,16 +83,33 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 	}
 
 	// check facility id's and fetch collection id's
-	sourceCollectionID, ok := s.facilityCollectionIDs[request.Params.SourceFacility]
+	srcFacility, ok := s.facilities[request.Params.SourceFacility]
 	if !ok {
 		return PostTransferTask403JSONResponse{
 			Message: getPointerOrNil("invalid source facility"),
 		}, nil
 	}
-	destCollectionID, ok := s.facilityCollectionIDs[request.Params.DestFacility]
+	dstFacility, ok := s.facilities[request.Params.DestFacility]
 	if !ok {
 		return PostTransferTask403JSONResponse{
 			Message: getPointerOrNil("invalid destination facility"),
+		}, nil
+	}
+
+	switch srcFacility.Direction {
+	case config.DirectionSource, config.DirectionBoth: // valid
+	default:
+		return PostTransferTask403JSONResponse{
+			Message: getPointerOrNil("source facility is not configured for source transfers"),
+			Details: getPointerOrNil("facility: " + srcFacility.Name),
+		}, nil
+	}
+	switch dstFacility.Direction {
+	case config.DirectionDestination, config.DirectionBoth: // valid
+	default:
+		return PostTransferTask403JSONResponse{
+			Message: getPointerOrNil("destination facility is not configured for destination transfers"),
+			Details: getPointerOrNil("facility: " + dstFacility.Name),
 		}, nil
 	}
 
@@ -61,6 +130,8 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}, nil
 	}
 
+	// Get the dataset
+	// TODO make asynchonous
 	scicatService := scicat.ScicatService{
 		Url:   s.scicatUrl,
 		Token: scicatUser.ScicatToken,
@@ -99,43 +170,79 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}, nil
 	}
 
-	// check for required group membership.
-	// facilitySrcGroupTemplate and facilityDstGroupTemplate are checked against the
-	// user's access groups (from Profile.AccessGroups in their user token)
-	var srcGroupBuf bytes.Buffer
-	err = s.srcGroupTemplate.Execute(&srcGroupBuf, GroupTemplateData{FacilityName: request.Params.SourceFacility})
+	ok, msg, err := checkAuthorization(&scicatUser, &srcFacility, &dstFacility, &dataset)
 	if err != nil {
+		slog.Error("checkAuthorization returned an error", err)
 		return PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("group templating failed with source facility"),
-			Details: getPointerOrNil(err.Error()),
+			Message: getPointerOrNil("you don't have the required access groups to request this transfer"),
+			Details: getPointerOrNil(msg),
 		}, nil
 	}
-
-	var dstGroupBuf bytes.Buffer
-	err = s.dstGroupTemplate.Execute(&dstGroupBuf, GroupTemplateData{FacilityName: request.Params.DestFacility})
-	if err != nil {
-		return PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("group templating failed with destination facility"),
-			Details: getPointerOrNil(err.Error()),
-		}, nil
-	}
-
-	requiredGroups := []string{srcGroupBuf.String(), dstGroupBuf.String(), dataset.OwnerGroup}
-	missingGroups := []string{}
-	for _, group := range requiredGroups {
-		if !slices.Contains(scicatUser.Profile.AccessGroups, group) {
-			missingGroups = append(missingGroups, group)
-		}
-	}
-
-	if len(missingGroups) > 0 {
+	if !ok {
+		slog.Error("user not authorized", msg)
 		return PostTransferTask401JSONResponse{
 			Message: getPointerOrNil("you don't have the required access groups to request this transfer"),
-			Details: getPointerOrNil(fmt.Sprintf("missing groups: '%v'", missingGroups)),
+			Details: getPointerOrNil(msg),
 		}, nil
 	}
 
-	// request the transfer
+	// Check that the dataset is within the globus collection on the source
+	var relativeSourceFolder string = dataset.SourceFolder
+	if srcFacility.CollectionRootPath != "" {
+		context := scopeContext{
+			Name: srcFacility.Name,
+		}
+		rootPath, err := srcFacility.CollectionRootPath.ExecuteStr(context)
+		if err != nil {
+			slog.Error("invalid collectionRootPath", "facility", srcFacility.Name, "collectionRootPath", srcFacility.CollectionRootPath)
+			return PostTransferTask500JSONResponse{
+				Message: getPointerOrNil("invalid server configuration"),
+				Details: getPointerOrNil("invalid collectionRootPath"),
+			}, nil
+		}
+
+		relPath, err := filepath.Rel(rootPath, dataset.SourceFolder)
+		if err != nil {
+			return PostTransferTask400JSONResponse{
+				GeneralErrorResponseJSONResponse{
+					Message: getPointerOrNil("dataset is not accessible from globus"),
+					Details: getPointerOrNil(fmt.Sprintf("sourceFolder: %v", dataset.SourceFolder)),
+				},
+			}, nil
+		}
+		relativeSourceFolder = relPath
+	}
+
+	// Prepare globus parameters
+
+	params := facilityPathContext{
+		DatasetFolder:        path.Base(dataset.SourceFolder),
+		SourceFolder:         dataset.SourceFolder,
+		RelativeSourceFolder: relativeSourceFolder,
+		Pid:                  request.Params.ScicatPid,
+		PidShort:             path.Base(request.Params.ScicatPid),
+		PidPrefix:            path.Dir(request.Params.ScicatPid),
+		PidEncoded:           url.PathEscape(request.Params.ScicatPid),
+		Username:             scicatUser.Profile.Username,
+	}
+
+	srcPath, err := srcFacility.SourcePath.Execute(params)
+	if err != nil {
+		return PostTransferTask500JSONResponse{
+			Message: getPointerOrNil("couldn't template source folder for the transfer"),
+			Details: getPointerOrNil(err.Error()),
+		}, nil
+	}
+
+	destPath, err := dstFacility.DestinationPath.Execute(params)
+	if err != nil {
+		return PostTransferTask500JSONResponse{
+			Message: getPointerOrNil("couldn't template destination folder for the transfer"),
+			Details: getPointerOrNil(err.Error()),
+		}, nil
+	}
+
+	// Check that the queue is available
 	if s.taskPool.IsQueueSizeLimited() {
 		s.addTaskMutex.Lock()
 		defer s.addTaskMutex.Unlock()
@@ -146,25 +253,7 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}
 	}
 
-	params := destPathParams{
-		DatasetFolder: path.Base(dataset.SourceFolder),
-		SourceFolder:  dataset.SourceFolder,
-		Pid:           request.Params.ScicatPid,
-		PidShort:      path.Base(request.Params.ScicatPid),
-		PidPrefix:     path.Dir(request.Params.ScicatPid),
-		PidEncoded:    url.PathEscape(request.Params.ScicatPid),
-		Username:      scicatUser.Profile.Username,
-	}
-
-	sourcePath := dataset.SourceFolder
-	destPath, err := s.dstPathTemplate.Execute(params)
-	if err != nil {
-		return PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("couldn't template destination folder for the transfer"),
-			Details: getPointerOrNil(err.Error()),
-		}, nil
-	}
-
+	// Prepare file list
 	var globusResult globus.TransferResult
 	if request.Body == nil {
 		return PostTransferTask400JSONResponse{
@@ -196,6 +285,7 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}, nil
 	}
 
+	// Log in to globus
 	serviceUserToken, err := s.scicatServiceUser.GetToken()
 	if err != nil {
 		_, _ = s.globusClient.TransferCancelTaskByID(globusResult.TaskId) // attempt to cancel transfer
@@ -205,6 +295,7 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}, nil
 	}
 
+	// request the transfer
 	// TODO: replace the service user token with the current user's token if it becomes possible to create the scicatJob as one's own user
 	//   , which will happen once the required changes are merged into BE SciCat. If the changes will still not allow this, just
 	//   remove this TODO.

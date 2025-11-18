@@ -1,14 +1,35 @@
 scicatUrl: "http://backend.localhost/"
-facilityCollectionIDs:
-  EXAMPLE-1: aaaa1111-22bb-cc44-dd5e-666667777777
-  EXAMPLE-2: 8f999999-eeee-0000-dddd-5555cccc4444
-globusScopes: 
-  - "urn:globus:auth:scope:transfer.api.globus.org:all[*https://auth.globus.org/scopes/aaa11111-22bb-3c44-dd5e-6666f7777777/data_access]"
-  - "urn:globus:auth:scope:transfer.api.globus.org:all[*https://auth.globus.org/scopes/8f999999-eeee-0000-dddd-5555cccc4444/data_access]"
 port: 8080
-facilitySrcGroupTemplate: "SRC-{{ .FacilityName }}"
-facilityDstGroupTemplate: "DST-{{ .FacilityName }}"
-destinationPathTemplate: "/service_user/{{ .PidShort }}"
+
+# List all facilities here. Overrides facilityDefault attributes. (required)
+facilities:
+
+  - # unique name
+    name: EXAMPLE-FULL
+    # Globus collection UUID (required)
+    collection: aaaa1111-22bb-cc44-dd5e-666667777777
+    # List of globus scopes. If omitted, defaults to the scope shown here
+    scopes:
+      - "urn:globus:auth:scope:transfer.api.globus.org:all[*https://auth.globus.org/scopes/{{.collection}}/data_access]"
+    # The path in the JWT token to use for access control. Should point to an array or string. (default: profile.accessGroups)
+    accessPath: profile.accessGroups
+    # Enforce that `accessPath` contains this value to allow transfers to this facility
+    # default: {{.Name}}
+    accessValue: example-group
+    # Transfer direction: SRC/DST/BOTH (default: BOTH)
+    direction: BOTH
+    # Path *relative to the globus endpoint root* when used as the source for transfers
+    sourcePath: "/{{ .RelativeSourceFolder }}"
+    # Path *relative to the globus endpoint root* when used as the destination for transfers
+    destinationPath: "/archive/{{ .Pid }}/{{ .SourceFolder }}"
+    # Globus Collection Root. Used for computing RelativeSourceFolder. (default: "/")
+    collectionRootPath: "/"
+
+  - name: EXAMPLE-MINIMAL
+    # Keep default facility settings
+    collection: bbbb2222-33cc-ff55-ee6e-777778888888
+
+# (Optional) overrides for performance tuning
 task:
   maxConcurrency: 10
   queueSize: 100
