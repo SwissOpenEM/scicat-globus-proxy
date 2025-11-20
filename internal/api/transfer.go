@@ -39,7 +39,7 @@ func checkAuthorization(scicatUser *scicat.User, srcFacility *Facility, dstFacil
 		return false, "", err
 	}
 	if !srcAllowed {
-		slog.Info("User lacks access")
+		slog.Info("User lacks access", "username", scicatUser.Profile.Username, "facility", srcFacility.Name, "accessPath", srcAccessPath, "accessValue", srcAccessValue)
 		return false, fmt.Sprintf("No access to facility %v", srcFacility.Name), nil
 	}
 
@@ -58,12 +58,14 @@ func checkAuthorization(scicatUser *scicat.User, srcFacility *Facility, dstFacil
 		return false, "", err
 	}
 	if !dstAllowed {
+		slog.Info("User lacks access", "username", scicatUser.Profile.Username, "facility", dstFacility.Name, "accessPath", dstAccessPath, "accessValue", dstAccessValue)
 		return false, fmt.Sprintf("No access to facility %v", dstFacility.Name), nil
 	}
 
 	// Dataset access
-	// TODO is OwnerGroup necessary and sufficient? We already know the user has read permission.
+	// TODO also allow the service user to transfer datasets?
 	if !slices.Contains(scicatUser.Profile.AccessGroups, dataset.OwnerGroup) {
+		slog.Info("User lacks access", "username", scicatUser.Profile.Username, "datasetPid", dataset.Pid, "ownerGroup", dataset.OwnerGroup)
 		return false, fmt.Sprintf("No access to dataset %v", dataset.Pid), nil
 	}
 
