@@ -1,3 +1,7 @@
 */api-server/*.yaml
 build/
 dist/
+
+# Don't commit local config files
+scicat-globus-proxy-config.yaml
+.env

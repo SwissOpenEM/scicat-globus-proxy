@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Test current file",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${fileDirname}"
+        },
+        {
             "name": "Debug Service",
             "type": "go",
             "request": "launch",
@@ -12,7 +19,7 @@
             "program": "${workspaceFolder}/cmd/api-server/build/server",
             "preLaunchTask": "build service",
             "cwd": "${workspaceFolder}/cmd/api-server/build",
-            "env": {"GLOBUS_CLIENT_ID": "", "GLOBUS_CLIENT_SECRET": "", "SCICAT_SERVICE_USER_USERNAME": "", "SCICAT_SERVICE_USER_PASSWORD": ""}
+            "envFile": "${workspaceFolder}/.env"
         }
     ]
 }

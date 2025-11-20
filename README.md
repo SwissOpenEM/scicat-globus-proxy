@@ -24,27 +24,49 @@ The swagger docs are accessible on running instances at `/docs/index.html`. The 
 
 ## Configuration
 
-You can find an example of the settings at [`example-conf.yaml`](example-conf.yaml)
+The configuration file `scicat-globus-proxy.config.yaml` can be put into two locations:
 
-- `scicatUrl` - the **base** url fo the instance of scicat to use (without the `/api/v[X]` part)
-- `facilityCollectionIDs` - a map of facility names (identifiers) to their collection id's
-- `globusScopes` - the scopes to use for the client connection. Access is required to transfer api and specific collections
-- `port` - the port at which the server should run
-- `facilitySrcGroupTemplate` - the template to use for groups (their names) that allow users to use facilities listed in `facilityCollectionIDs` as the source of their transferrequests
-- `facilityDstGroupTemplate` - same as above, but as the destination of their transfer requests
-- `destinationPathTemplate` - the template to use for determining the path at the
-  destination of the transfer. The following template variables are supported:
-  - Pid:           dataset `pid` property
-  - PidPrefix:     prefix of the pid (before the slash)
-  - PidShort:      pid with out the prefix
-  - PidEncoded:    url-encoded PID
-  - SourceFolder:  dataset `sourceFolder` property
-  - DatasetFolder: base name of `sourceFolder`
-  - Username:      username of the current scicat user
-- `task` - a set of settings for configuring the handling of transfer tasks
-  - `maxConcurrency` - maximum number of transfer tasks executed in parallel
-  - `queueSize` - how many tasks can be put in a queue (0 is infinite)
-  - `pollInterval` - the amount of seconds to wait before a task polls Globus again to update the status of the transfer
+1. Next to the executable (taking precedence)
+2. Into `$USERCONFIGDIR/scicat-globus-proxy` where `$USERCONFIGDIR` is resolved like this:
+
+   - Unix: `$XDG_CONFIG_HOME/scicat-globus-proxy/scicat-globus-proxy-config.yaml` if non-empty, else `$HOME/.config/scicat-globus-proxy/scicat-globus-proxy-config.yaml`
+   - MacOS: `$HOME/Library/Application Support/scicat-globus-proxy/scicat-globus-proxy-config.yaml`
+   - Windows: `%AppData%\scicat-globus-proxy\scicat-globus-proxy-config.yaml`
+
+   See <https://pkg.go.dev/os#UserConfigDir/> for details.
+
+You can find an example of the settings at [`scicat-globus-proxy-config.example.yaml`](scicat-globus-proxy-config.example.yaml)
+
+- `scicatUrl` - the **base** url fo the instance of scicat to use (without the `/api/v[X]` part). (required)
+- `port` - the port at which the server should run. (required)
+- `facilities` - a list of facilities available for transfer. Facilities have the following properties:
+  - `Name` - a unique name for the facility, used in transfer requests (required)
+  - `Collection` - the globus collection ID (required)
+  - `Scopes` - the globus scopes to use for the client connection. Access is required to transfer api and specific collections. Default: `["urn:globus:auth:scope:transfer.api.globus.org:all[*https://auth.globus.org/scopes/{{.Collection}}/data_access]"]`. Available template variables:
+    - `Name`
+    - `Collection`
+  - `accessPath` - a path relative to the OAuth identity to find authentication information granting access to this facility. Should point to an array of strings. Default: `profile.accessGroups`
+  - `accessValue` - a required string within the identy object pointed to by `accessPath` (eg a group name). Default: `{{.Name}}`. Available template variables:
+    - `Name`
+  - `direction` - valid transfer directions for this facility.
+    - `SRC` - Only valid as a source
+    - `DST` - Only valid as a destination
+    - `BOTH` - Valid as either source or destination (default)
+  - `sourcePath` - path *relative to the globus endpoint root* for datasets when this facility is used as the source for transfers. Default: `/{{ .RelativeSourceFolder }}`. Available template variables:
+    - `Pid`:                  dataset `pid` property
+    - `PidPrefix`:            prefix of the pid (before the slash)
+    - `PidShort`:             pid with out the prefix
+    - `PidEncoded`:           url-encoded PID
+    - `SourceFolder`:         dataset `sourceFolder` property
+    - `RelativeSourceFolder`: sourceFolder after stripping the `collectionRootPath` prefix.
+    - `DatasetFolder`:        base name of `sourceFolder`
+    - `Username`:             username of the current scicat user
+  - `destinationPath` - path *relative to the globus endpoint root* for datasets when this facility is used as the destination for transfers. Default: `/{{ .RelativeSourceFolder }}`. Available template variables are the same as `sourcePath`.
+  - `collectionRootPath` - Path of the globus root collection. All datasets are required to be contained within this directory for the source facility.
+- `task` - a set of settings for configuring the handling of transfer tasks. (optional)
+  - `maxConcurrency` - maximum number of transfer tasks executed in parallel. (default: 10)
+  - `queueSize` - how many tasks can be put in a queue (0 is infinite). (default: 0)
+  - `pollInterval` - the amount of seconds to wait before a task polls Globus again to update the status of the transfer. (default: 10)
 
 ## Environment variables
 
@@ -57,3 +79,10 @@ You can find an example of the settings at [`example-conf.yaml`](example-conf.ya
 
 Docker images are built and pushed for every modification and tags added to the `main`
 branch.
+
+The docker image expects a configuration file to be mounted at `/service/scicat-globus-proxy-config.yaml`.
+
+```sh
+docker build -t scicat-globus-proxy .
+docker run --rm -v $PWD/scicat-globus-proxy-config.yaml:/service/scicat-globus-proxy-config.yaml --env-file=.env scicat-globus-proxy
+```

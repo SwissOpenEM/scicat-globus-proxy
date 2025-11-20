@@ -4,61 +4,91 @@ package api
 import (
 	"fmt"
 	"sync"
-	"text/template"
 
 	"github.com/SwissOpenEM/globus"
+	config "github.com/SwissOpenEM/scicat-globus-proxy/internal/config"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/serviceuser"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/tasks"
+	util "github.com/SwissOpenEM/scicat-globus-proxy/internal/util"
 )
 
 type ServerHandler struct {
-	version               string
-	globusClient          globus.GlobusClient
-	scicatUrl             string
-	scicatServiceUser     serviceuser.ScicatServiceUser
-	facilityCollectionIDs map[string]string
-	srcGroupTemplate      *template.Template
-	dstGroupTemplate      *template.Template
-	dstPathTemplate       DestinationTemplate
-	taskPool              tasks.TaskPool
-	addTaskMutex          *sync.Mutex
+	version           string
+	globusClient      globus.GlobusClient
+	scicatUrl         string
+	scicatServiceUser serviceuser.ScicatServiceUser
+	facilities        map[string]Facility
+	taskPool          tasks.TaskPool
+	addTaskMutex      *sync.Mutex
+}
+
+type Facility struct {
+	Name               string
+	Collection         string
+	AccessPath         *accessPathTemplate
+	AccessValue        *accessPathTemplate
+	Direction          config.FacilityDirection
+	SourcePath         *facilityPathTemplate
+	DestinationPath    *facilityPathTemplate
+	CollectionRootPath *scopeTemplate
+}
+
+func NewFacility(config config.FacilityConfig) (*Facility, error) {
+	var err error
+	facility := new(Facility)
+	facility.Name = config.Name
+	facility.Collection = config.Collection
+	facility.Direction = config.Direction
+	facility.AccessPath, err = util.NewTypedTemplate[accessPathContext](config.AccessPath)
+	if err != nil {
+		return nil, err
+	}
+	facility.AccessValue, err = util.NewTypedTemplate[accessPathContext](config.AccessValue)
+	if err != nil {
+		return nil, err
+	}
+	facility.SourcePath, err = util.NewTypedTemplate[facilityPathContext](config.SourcePath)
+	if err != nil {
+		return nil, err
+	}
+	facility.DestinationPath, err = util.NewTypedTemplate[facilityPathContext](config.DestinationPath)
+	if err != nil {
+		return nil, err
+	}
+	if config.CollectionRootPath == "" {
+		facility.CollectionRootPath = nil
+	} else {
+		facility.CollectionRootPath, err = util.NewTypedTemplate[scopeContext](config.CollectionRootPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return facility, nil
 }
 
 var _ StrictServerInterface = ServerHandler{}
 
-func NewServerHandler(version string, globusClient globus.GlobusClient, scopes []string, scicatUrl string, scicatServiceUser serviceuser.ScicatServiceUser, facilityCollectionIDs map[string]string, srcGroupTemplateBody string, dstGroupTemplateBody string, dstPathTemplateBody string, taskPool tasks.TaskPool) (ServerHandler, error) {
+func NewServerHandler(
+	version string,
+	globusClient globus.GlobusClient,
+	scicatUrl string,
+	scicatServiceUser serviceuser.ScicatServiceUser,
+	facilities *map[string]Facility,
+	taskPool tasks.TaskPool) (ServerHandler, error) {
 	// create server with service client
 	var err error
 	if !globusClient.IsClientSet() {
 		return ServerHandler{}, fmt.Errorf("AUTH error: Client is nil")
 	}
 
-	srcGroupTemplate, err := template.New("source group template").Parse(srcGroupTemplateBody)
-	if err != nil {
-		return ServerHandler{}, err
-	}
-
-	dstGroupTemplate, err := template.New("destination group template").Parse(dstGroupTemplateBody)
-	if err != nil {
-		return ServerHandler{}, err
-	}
-
-	dstPathTemplate, err := NewDestinationTemplate(dstPathTemplateBody)
-	if err != nil {
-		return ServerHandler{}, err
-	}
-
 	return ServerHandler{
-		version:               version,
-		scicatUrl:             scicatUrl,
-		scicatServiceUser:     scicatServiceUser,
-		globusClient:          globusClient,
-		facilityCollectionIDs: facilityCollectionIDs,
-		srcGroupTemplate:      srcGroupTemplate,
-		dstGroupTemplate:      dstGroupTemplate,
-		dstPathTemplate:       dstPathTemplate,
-		taskPool:              taskPool,
-		addTaskMutex:          &sync.Mutex{},
+		version:           version,
+		globusClient:      globusClient,
+		scicatUrl:         scicatUrl,
+		scicatServiceUser: scicatServiceUser,
+		facilities:        *facilities,
+		taskPool:          taskPool,
+		addTaskMutex:      &sync.Mutex{},
 	}, err
 }
 

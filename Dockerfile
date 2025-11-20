@@ -16,7 +16,8 @@ FROM alpine:3 AS release
 WORKDIR /service
 
 COPY --from=build-stage /app/build/scicat_globus_proxy ./scicat_globus_proxy
-COPY ./example-conf.yaml /service/SwissOpenEM/scicat-globus-proxy-conf.yaml
+
+# Mount the config file at /service/scicat-globus-proxy-conf.yaml
 
 EXPOSE 8080
 

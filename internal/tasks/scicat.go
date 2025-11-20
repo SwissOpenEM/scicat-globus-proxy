@@ -63,7 +63,7 @@ func CreateGlobusTransferScicatJob(scicatUrl string, scicatToken string, ownerGr
 		return jobs.ScicatJob{}, err
 	}
 
-	slog.Debug("Creating globus_transfer_job on SciCat", url, reqBody)
+	slog.Debug("Creating globus_transfer_job on SciCat", "url", url, "body", reqBody)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return jobs.ScicatJob{}, err
