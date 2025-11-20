@@ -35,35 +35,35 @@ type Facility struct {
 
 func NewFacility(config config.FacilityConfig) (*Facility, error) {
 	var err error
-	f := new(Facility)
-	f.Name = config.Name
-	f.Collection = config.Collection
-	f.Direction = config.Direction
-	f.AccessPath, err = util.NewTypedTemplate[accessPathContext](config.AccessPath)
+	facility := new(Facility)
+	facility.Name = config.Name
+	facility.Collection = config.Collection
+	facility.Direction = config.Direction
+	facility.AccessPath, err = util.NewTypedTemplate[accessPathContext](config.AccessPath)
 	if err != nil {
 		return nil, err
 	}
-	f.AccessValue, err = util.NewTypedTemplate[accessPathContext](config.AccessValue)
+	facility.AccessValue, err = util.NewTypedTemplate[accessPathContext](config.AccessValue)
 	if err != nil {
 		return nil, err
 	}
-	f.SourcePath, err = util.NewTypedTemplate[facilityPathContext](config.SourcePath)
+	facility.SourcePath, err = util.NewTypedTemplate[facilityPathContext](config.SourcePath)
 	if err != nil {
 		return nil, err
 	}
-	f.DestinationPath, err = util.NewTypedTemplate[facilityPathContext](config.DestinationPath)
+	facility.DestinationPath, err = util.NewTypedTemplate[facilityPathContext](config.DestinationPath)
 	if err != nil {
 		return nil, err
 	}
 	if config.CollectionRootPath == "" {
-		f.CollectionRootPath = nil
+		facility.CollectionRootPath = nil
 	} else {
-		f.CollectionRootPath, err = util.NewTypedTemplate[scopeContext](config.CollectionRootPath)
+		facility.CollectionRootPath, err = util.NewTypedTemplate[scopeContext](config.CollectionRootPath)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return f, nil
+	return facility, nil
 }
 
 var _ StrictServerInterface = ServerHandler{}
