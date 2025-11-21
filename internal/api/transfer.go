@@ -168,21 +168,21 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}, nil
 	}
 
-	ok, msg, err := checkAuthorization(&scicatUser, &srcFacility, &dstFacility, &dataset)
-	if err != nil {
-		slog.Error("checkAuthorization returned an error", "error", err)
-		return PostTransferTask500JSONResponse{
-			Message: getPointerOrNil("you don't have the required access groups to request this transfer"),
-			Details: getPointerOrNil(msg),
-		}, nil
-	}
-	if !ok {
-		slog.Error("user not authorized", "message", msg)
-		return PostTransferTask401JSONResponse{
-			Message: getPointerOrNil("you don't have the required access groups to request this transfer"),
-			Details: getPointerOrNil(msg),
-		}, nil
-	}
+	// ok, msg, err := checkAuthorization(&scicatUser, &srcFacility, &dstFacility, &dataset)
+	// if err != nil {
+	// 	slog.Error("checkAuthorization returned an error", "error", err)
+	// 	return PostTransferTask500JSONResponse{
+	// 		Message: getPointerOrNil("you don't have the required access groups to request this transfer"),
+	// 		Details: getPointerOrNil(msg),
+	// 	}, nil
+	// }
+	// if !ok {
+	// 	slog.Error("user not authorized", "message", msg)
+	// 	return PostTransferTask401JSONResponse{
+	// 		Message: getPointerOrNil("you don't have the required access groups to request this transfer"),
+	// 		Details: getPointerOrNil(msg),
+	// 	}, nil
+	// }
 
 	// Check that the dataset is within the globus collection on the source
 	var relativeSourceFolder = dataset.SourceFolder
@@ -251,29 +251,34 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}
 	}
 
-	// Prepare file list
-	var globusResult globus.TransferResult
-	if request.Body == nil {
-		return PostTransferTask400JSONResponse{
-			GeneralErrorResponseJSONResponse: GeneralErrorResponseJSONResponse{
-				Message: getPointerOrNil("no body was sent with the request"),
-			},
-		}, nil
-	}
+	// var origdatablocks []scicat.ScicatOrigDatablock
+	// origdatablocks, _ = scicatService.GetOrigDatablocks(dataset.Pid)
 
-	if request.Body.FileList != nil {
-		// use filelist
-		paths := make([]string, len(*request.Body.FileList))
-		isSymlinks := make([]bool, len(*request.Body.FileList))
-		for i, file := range *request.Body.FileList {
-			paths[i] = file.Path
-			isSymlinks[i] = file.IsSymlink
-		}
-		globusResult, err = s.globusClient.TransferFileList(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, paths, isSymlinks, false)
-	} else {
-		// sync folders through globus
-		globusResult, err = s.globusClient.TransferFolderSync(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, false)
-	}
+	// Prepare file list
+	// var globusResult globus.TransferResult
+	// if request.Body == nil {
+	// 	return PostTransferTask400JSONResponse{
+	// 		GeneralErrorResponseJSONResponse: GeneralErrorResponseJSONResponse{
+	// 			Message: getPointerOrNil("no body was sent with the request"),
+	// 		},
+	// 	}, nil
+	// }
+	// if request.Body.FileList != nil {
+	// 	// use filelist
+	// 	paths := make([]string, len(*request.Body.FileList))
+	// 	isSymlinks := make([]bool, len(*request.Body.FileList))
+	// 	for i, file := range *request.Body.FileList {
+	// 		paths[i] = file.Path
+	// 		isSymlinks[i] = file.IsSymlink
+	// 	}
+	// 	globusResult, err = s.globusClient.TransferFileList(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, paths, isSymlinks, false)
+	// } else {
+	// 	// sync folders through globus
+	// 	globusResult, err = s.globusClient.TransferFolderSync(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, false)
+	// }
+
+	globusResult, err := s.globusClient.TransferFolderSync(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, false)
+
 	if err != nil {
 		return PostTransferTask400JSONResponse{
 			GeneralErrorResponseJSONResponse: GeneralErrorResponseJSONResponse{
