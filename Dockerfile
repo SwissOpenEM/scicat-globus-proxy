@@ -9,7 +9,8 @@ COPY ./internal ./internal
 COPY ./jobs ./jobs
 COPY ./cmd ./cmd
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o ./build/scicat_globus_proxy ./cmd/api-server/
+ARG VERSION=DEVELOPMENT_VERSION
+RUN CGO_ENABLED=0 GOOS=linux go build -C ./cmd/api-server/ -o /app/build/scicat_globus_proxy  -ldflags="-s -w  -X 'main.version=${VERSION}'"
 
 FROM alpine:3 AS release
 
