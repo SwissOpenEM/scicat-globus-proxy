@@ -25,15 +25,6 @@ const (
 	ScicatKeyAuthScopes = "ScicatKeyAuth.Scopes"
 )
 
-// FileToTransfer the file to transfer as part of a transfer request
-type FileToTransfer struct {
-	// IsSymlink specifies whether this file is a symlink
-	IsSymlink bool `json:"isSymlink"`
-
-	// Path the path of the file, it has to be relative to the dataset source folder
-	Path string `json:"path"`
-}
-
 // GeneralErrorResponse defines model for GeneralErrorResponse.
 type GeneralErrorResponse struct {
 	// Details further details, debugging information
@@ -41,11 +32,6 @@ type GeneralErrorResponse struct {
 
 	// Message the error message
 	Message *string `json:"message,omitempty"`
-}
-
-// PostTransferTaskJSONBody defines parameters for PostTransferTask.
-type PostTransferTaskJSONBody struct {
-	FileList *[]FileToTransfer `json:"fileList,omitempty"`
 }
 
 // PostTransferTaskParams defines parameters for PostTransferTask.
@@ -58,6 +44,9 @@ type PostTransferTaskParams struct {
 
 	// ScicatPid the pid of the dataset being transferred
 	ScicatPid string `form:"scicatPid" json:"scicatPid"`
+
+	// CollectionRootPath Path to the root of the globus collection on the source facility
+	CollectionRootPath string `form:"collectionRootPath" json:"collectionRootPath"`
 }
 
 // DeleteTransferTaskParams defines parameters for DeleteTransferTask.
@@ -65,9 +54,6 @@ type DeleteTransferTaskParams struct {
 	// Delete Enables/disables deleting from scicat job system. By default, it's disabled (false).
 	Delete *bool `form:"delete,omitempty" json:"delete,omitempty"`
 }
-
-// PostTransferTaskJSONRequestBody defines body for PostTransferTask for application/json ContentType.
-type PostTransferTaskJSONRequestBody PostTransferTaskJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -143,6 +129,21 @@ func (siw *ServerInterfaceWrapper) PostTransferTask(c *gin.Context) {
 	err = runtime.BindQueryParameter("form", true, true, "scicatPid", c.Request.URL.Query(), &params.ScicatPid)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter scicatPid: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Required query parameter "collectionRootPath" -------------
+
+	if paramValue := c.Query("collectionRootPath"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandler(c, fmt.Errorf("Query argument collectionRootPath is required, but not found"), http.StatusBadRequest)
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "collectionRootPath", c.Request.URL.Query(), &params.CollectionRootPath)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter collectionRootPath: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -248,7 +249,6 @@ type GeneralErrorResponseJSONResponse struct {
 
 type PostTransferTaskRequestObject struct {
 	Params PostTransferTaskParams
-	Body   *PostTransferTaskJSONRequestBody
 }
 
 type PostTransferTaskResponseObject interface {
@@ -461,14 +461,6 @@ func (sh *strictHandler) PostTransferTask(ctx *gin.Context, params PostTransferT
 
 	request.Params = params
 
-	var body PostTransferTaskJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
-
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.PostTransferTask(ctx, request.(PostTransferTaskRequestObject))
 	}
@@ -546,26 +538,24 @@ func (sh *strictHandler) GetVersion(ctx *gin.Context) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
