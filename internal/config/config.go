@@ -151,7 +151,9 @@ func ReadConfig() (Config, error) {
 
 func ReadConfigFromBytes(contents []byte) (Config, error) {
 	var conf Config
-	err := yaml.Unmarshal(contents, &conf)
+	if err := yaml.Unmarshal(contents, &conf); err != nil {
+		return Config{}, err
+	}
 
 	// Set defaults
 	task := NewTaskConfig()
@@ -177,7 +179,7 @@ func ReadConfigFromBytes(contents []byte) (Config, error) {
 		}
 	}
 
-	return conf, err
+	return conf, nil
 }
 
 // Variables available to scopes for templating

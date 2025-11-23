@@ -38,3 +38,30 @@ facilities:
 	assert.Equal(t, 1, len(scopes))
 	assert.Equal(t, []string{"urn:globus:auth:scope:transfer.api.globus.org:all[*https://auth.globus.org/scopes/aaaa1111-22bb-cc44-dd5e-666667777777/data_access]"}, scopes)
 }
+
+func TestYamlMerging(t *testing.T) {
+	content := `
+scicatUrl: "http://backend.localhost"
+port: 1234
+defaults:
+  - &template
+    destinationPath: '/archive/{{ replace .Pid "." "-" }}/{{ .SourceFolder }}'
+
+facilities:
+  - <<: *template
+    name: "TestFacility"
+    collection: aaaa1111-22bb-cc44-dd5e-666667777777
+`
+
+	var typed Config
+	err := yaml.Unmarshal([]byte(content), &typed)
+	assert.Nil(t, err)
+
+	conf, err := ReadConfigFromBytes([]byte(content))
+	assert.Equal(t, 1, len(conf.Facilities))
+
+	fac := conf.Facilities[0]
+	assert.Equal(t, "TestFacility", fac.Name)
+	assert.Equal(t, "aaaa1111-22bb-cc44-dd5e-666667777777", fac.Collection)
+	assert.Equal(t, `/archive/{{ replace .Pid "." "-" }}/{{ .SourceFolder }}`, fac.DestinationPath)
+}

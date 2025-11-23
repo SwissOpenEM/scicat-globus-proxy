@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"slices"
 
-	"github.com/SwissOpenEM/globus"
+	// "github.com/SwissOpenEM/globus"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/config"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/scicat"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/tasks"
@@ -185,19 +185,20 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 	// }
 
 	// Check that the dataset is within the globus collection on the source
+	rootPath := request.Params.CollectionRootPath
 	var relativeSourceFolder = dataset.SourceFolder
-	if srcFacility.CollectionRootPath != nil {
-		context := scopeContext{
-			Name: srcFacility.Name,
-		}
-		rootPath, err := srcFacility.CollectionRootPath.ExecuteStr(context)
-		if err != nil {
-			slog.Error("invalid collectionRootPath", "facility", srcFacility.Name, "collectionRootPath", srcFacility.CollectionRootPath)
-			return PostTransferTask500JSONResponse{
-				Message: getPointerOrNil("invalid server configuration"),
-				Details: getPointerOrNil("invalid collectionRootPath"),
-			}, nil
-		}
+	if rootPath != "" {
+		// context := scopeContext{
+		// 	Name: srcFacility.Name,
+		// }
+		// rootPath, err := srcFacility.CollectionRootPath.ExecuteStr(context)
+		// if err != nil {
+		// 	slog.Error("invalid collectionRootPath", "facility", srcFacility.Name, "collectionRootPath", srcFacility.CollectionRootPath)
+		// 	return PostTransferTask500JSONResponse{
+		// 		Message: getPointerOrNil("invalid server configuration"),
+		// 		Details: getPointerOrNil("invalid collectionRootPath"),
+		// 	}, nil
+		// }
 
 		relPath, err := filepath.Rel(rootPath, dataset.SourceFolder)
 		if err != nil {
@@ -277,6 +278,7 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 	// 	globusResult, err = s.globusClient.TransferFolderSync(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, false)
 	// }
 
+	slog.Info("Submitting transfer task to globus", "sourceEndpoint", srcFacility.Collection, "sourcePath", srcPath, "destEndpoint", dstFacility.Collection, "destPath", destPath)
 	globusResult, err := s.globusClient.TransferFolderSync(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, false)
 
 	if err != nil {
