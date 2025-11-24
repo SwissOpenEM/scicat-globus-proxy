@@ -58,6 +58,7 @@ facilities:
 	assert.Nil(t, err)
 
 	conf, err := ReadConfigFromBytes([]byte(content))
+	assert.Nil(t, err)
 	assert.Equal(t, 1, len(conf.Facilities))
 
 	fac := conf.Facilities[0]

@@ -168,21 +168,21 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}, nil
 	}
 
-	// ok, msg, err := checkAuthorization(&scicatUser, &srcFacility, &dstFacility, &dataset)
-	// if err != nil {
-	// 	slog.Error("checkAuthorization returned an error", "error", err)
-	// 	return PostTransferTask500JSONResponse{
-	// 		Message: getPointerOrNil("you don't have the required access groups to request this transfer"),
-	// 		Details: getPointerOrNil(msg),
-	// 	}, nil
-	// }
-	// if !ok {
-	// 	slog.Error("user not authorized", "message", msg)
-	// 	return PostTransferTask401JSONResponse{
-	// 		Message: getPointerOrNil("you don't have the required access groups to request this transfer"),
-	// 		Details: getPointerOrNil(msg),
-	// 	}, nil
-	// }
+	ok, msg, err := checkAuthorization(&scicatUser, &srcFacility, &dstFacility, &dataset)
+	if err != nil {
+		slog.Error("checkAuthorization returned an error", "error", err)
+		return PostTransferTask500JSONResponse{
+			Message: getPointerOrNil("you don't have the required access groups to request this transfer"),
+			Details: getPointerOrNil(msg),
+		}, nil
+	}
+	if !ok {
+		slog.Error("user not authorized", "message", msg)
+		return PostTransferTask401JSONResponse{
+			Message: getPointerOrNil("you don't have the required access groups to request this transfer"),
+			Details: getPointerOrNil(msg),
+		}, nil
+	}
 
 	// Check that the dataset is within the globus collection on the source
 	rootPath := request.Params.CollectionRootPath
