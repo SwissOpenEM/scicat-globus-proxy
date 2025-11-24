@@ -25,9 +25,3 @@ type accessPathContext struct {
 }
 
 type accessPathTemplate = util.TypedTemplate[accessPathContext]
-
-type scopeContext struct {
-	Name string
-}
-
-type scopeTemplate = util.TypedTemplate[scopeContext]

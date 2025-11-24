@@ -23,14 +23,13 @@ type ServerHandler struct {
 }
 
 type Facility struct {
-	Name               string
-	Collection         string
-	AccessPath         *accessPathTemplate
-	AccessValue        *accessPathTemplate
-	Direction          config.FacilityDirection
-	SourcePath         *facilityPathTemplate
-	DestinationPath    *facilityPathTemplate
-	CollectionRootPath *scopeTemplate
+	Name            string
+	Collection      string
+	AccessPath      *accessPathTemplate
+	AccessValue     *accessPathTemplate
+	Direction       config.FacilityDirection
+	SourcePath      *facilityPathTemplate
+	DestinationPath *facilityPathTemplate
 }
 
 func NewFacility(config config.FacilityConfig) (*Facility, error) {
@@ -54,14 +53,6 @@ func NewFacility(config config.FacilityConfig) (*Facility, error) {
 	facility.DestinationPath, err = util.NewTypedTemplate[facilityPathContext](config.DestinationPath)
 	if err != nil {
 		return nil, err
-	}
-	if config.CollectionRootPath == "" {
-		facility.CollectionRootPath = nil
-	} else {
-		facility.CollectionRootPath, err = util.NewTypedTemplate[scopeContext](config.CollectionRootPath)
-		if err != nil {
-			return nil, err
-		}
 	}
 	return facility, nil
 }

@@ -115,6 +115,55 @@ func (scicat *ScicatService) GetUserIdentity() (User, error) {
 	return user, nil
 }
 
+func (scicat *ScicatService) GetOrigDatablocks(scicatPid string) ([]ScicatOrigDatablock, error) {
+
+	origDatablocksUrl, err := url.JoinPath(scicat.Url, "api", "v3", "datasets", url.QueryEscape(scicatPid), "origdatablocks")
+
+	if err != nil {
+		return []ScicatOrigDatablock{}, errors.New("couldn't create dataset request url")
+	}
+
+	origDatablocksReq, err := http.NewRequest("GET", origDatablocksUrl, nil)
+	if err != nil {
+		return []ScicatOrigDatablock{}, DetailedError{
+			Message: "couldn't generate dataset request",
+			Err:     err,
+		}
+	}
+
+	origDatablocksReq.Header.Set("Authorization", "Bearer "+scicat.Token)
+
+	slog.Debug("Fetching dataset from SciCat", "url", origDatablocksUrl)
+
+	origDatablocksResp, err := http.DefaultClient.Do(origDatablocksReq)
+	if err != nil {
+		return []ScicatOrigDatablock{}, DetailedError{
+			Message: "couldn't send dataset request to scicat backend",
+			Err:     err,
+		}
+	}
+	defer origDatablocksResp.Body.Close()
+
+	origDatablocksRespBody, err := io.ReadAll(origDatablocksResp.Body)
+	if err != nil {
+		return []ScicatOrigDatablock{}, DetailedError{
+			Message: "failed to read response body",
+			Err:     err,
+		}
+	}
+
+	var origDatablocks []ScicatOrigDatablock
+	err = json.Unmarshal(origDatablocksRespBody, &origDatablocks)
+	if err != nil {
+		return []ScicatOrigDatablock{}, DetailedError{
+			Message: "failed to unmarshal response body",
+			Err:     err,
+		}
+	}
+	return origDatablocks, nil
+
+}
+
 func (scicat *ScicatService) GetDataset(scicatPid string) (ScicatDataset, error) {
 	// fetch related dataset
 	datasetUrl, err := url.JoinPath(scicat.Url, "api", "v3", "datasets", url.QueryEscape(scicatPid))

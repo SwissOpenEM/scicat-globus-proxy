@@ -58,15 +58,14 @@ const (
 )
 
 type FacilityConfig struct {
-	Name               string            `yaml:"name"`
-	Collection         string            `yaml:"collection"`
-	Scopes             []string          `yaml:"scopes,omitempty"`
-	AccessPath         string            `yaml:"accessPath,omitempty"`
-	AccessValue        string            `yaml:"accessValue,omitempty"`
-	Direction          FacilityDirection `yaml:"direction,omitempty"`
-	SourcePath         string            `yaml:"sourcePath,omitempty"`
-	DestinationPath    string            `yaml:"destinationPath,omitempty"`
-	CollectionRootPath string            `yaml:"collectionRootPath,omitempty"`
+	Name            string            `yaml:"name"`
+	Collection      string            `yaml:"collection"`
+	Scopes          []string          `yaml:"scopes,omitempty"`
+	AccessPath      string            `yaml:"accessPath,omitempty"`
+	AccessValue     string            `yaml:"accessValue,omitempty"`
+	Direction       FacilityDirection `yaml:"direction,omitempty"`
+	SourcePath      string            `yaml:"sourcePath,omitempty"`
+	DestinationPath string            `yaml:"destinationPath,omitempty"`
 }
 
 // Construct a FacilityConfig with default values
@@ -76,12 +75,11 @@ func NewFacilityConfig() *FacilityConfig {
 		Scopes: []string{
 			"urn:globus:auth:scope:transfer.api.globus.org:all[*https://auth.globus.org/scopes/{{.Collection}}/data_access]",
 		},
-		AccessPath:         "profile.accessGroups",
-		AccessValue:        "{{ .Name }}",
-		Direction:          DirectionBoth,
-		SourcePath:         "/{{ .RelativeSourceFolder }}",
-		DestinationPath:    "/{{ .RelativeSourceFolder }}",
-		CollectionRootPath: "/",
+		AccessPath:      "profile.accessGroups",
+		AccessValue:     "{{ .Name }}",
+		Direction:       DirectionBoth,
+		SourcePath:      "/{{ .RelativeSourceFolder }}",
+		DestinationPath: "/{{ .RelativeSourceFolder }}",
 	}
 }
 
@@ -117,9 +115,6 @@ func (base *FacilityConfig) Merge(overrides *FacilityConfig) *FacilityConfig {
 	if overrides.DestinationPath != "" {
 		base.DestinationPath = overrides.DestinationPath
 	}
-	if overrides.CollectionRootPath != "" {
-		base.CollectionRootPath = overrides.CollectionRootPath
-	}
 	return base
 }
 
@@ -151,7 +146,9 @@ func ReadConfig() (Config, error) {
 
 func ReadConfigFromBytes(contents []byte) (Config, error) {
 	var conf Config
-	err := yaml.Unmarshal(contents, &conf)
+	if err := yaml.Unmarshal(contents, &conf); err != nil {
+		return Config{}, err
+	}
 
 	// Set defaults
 	task := NewTaskConfig()
@@ -177,7 +174,7 @@ func ReadConfigFromBytes(contents []byte) (Config, error) {
 		}
 	}
 
-	return conf, err
+	return conf, nil
 }
 
 // Variables available to scopes for templating
