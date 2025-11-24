@@ -3,7 +3,7 @@ info:
   title: SciCat Globus Proxy API
   description: |-
     Rest API for the SciCat Globus Proxy. It uses Scicat tokens for authentication.
-  version: 1.0.1
+  version: 1.1.0
 tags:
   - name: auth
     description: Operations related to authentication
@@ -64,8 +64,15 @@ paths:
           schema:
             type: string
             description: the SciCat PID of the dataset being transferred
+        - name: collectionRootPath
+          description: "Path to the root of the globus collection on the source facility"
+          in: query
+          required: true
+          schema:
+            type: string
       requestBody:
-        required: true
+        description: If omitted, transfer the entire dataset source folder. If provided, only transfer the listed files.
+        required: false
         content:
           application/json:
             schema:

@@ -27,7 +27,6 @@ facilities:
     # Path *relative to the globus endpoint root* when used as the destination for transfers
     destinationPath: "/archive/{{ .Pid }}/{{ .SourceFolder }}"
     # Globus Collection Root. Used for computing RelativeSourceFolder. (default: "/")
-    collectionRootPath: "/"
 
   - # Minimal example with default facility settings
     name: EXAMPLE-MINIMAL

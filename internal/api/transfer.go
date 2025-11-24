@@ -185,20 +185,9 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 	}
 
 	// Check that the dataset is within the globus collection on the source
+	rootPath := request.Params.CollectionRootPath
 	var relativeSourceFolder = dataset.SourceFolder
-	if srcFacility.CollectionRootPath != nil {
-		context := scopeContext{
-			Name: srcFacility.Name,
-		}
-		rootPath, err := srcFacility.CollectionRootPath.ExecuteStr(context)
-		if err != nil {
-			slog.Error("invalid collectionRootPath", "facility", srcFacility.Name, "collectionRootPath", srcFacility.CollectionRootPath)
-			return PostTransferTask500JSONResponse{
-				Message: getPointerOrNil("invalid server configuration"),
-				Details: getPointerOrNil("invalid collectionRootPath"),
-			}, nil
-		}
-
+	if rootPath != "" {
 		relPath, err := filepath.Rel(rootPath, dataset.SourceFolder)
 		if err != nil {
 			return PostTransferTask400JSONResponse{
@@ -252,16 +241,9 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 	}
 
 	// Prepare file list
+	// TODO: could the file list be prepared from `scicat.GetOrigDatablocks`?
 	var globusResult globus.TransferResult
-	if request.Body == nil {
-		return PostTransferTask400JSONResponse{
-			GeneralErrorResponseJSONResponse: GeneralErrorResponseJSONResponse{
-				Message: getPointerOrNil("no body was sent with the request"),
-			},
-		}, nil
-	}
-
-	if request.Body.FileList != nil {
+	if request.Body != nil && request.Body.FileList != nil {
 		// use filelist
 		paths := make([]string, len(*request.Body.FileList))
 		isSymlinks := make([]bool, len(*request.Body.FileList))
@@ -269,11 +251,14 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 			paths[i] = file.Path
 			isSymlinks[i] = file.IsSymlink
 		}
-		globusResult, err = s.globusClient.TransferFileList(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, paths, isSymlinks, false)
+		slog.Info("Submitting transfer task to globus with filelist", "sourceEndpoint", srcFacility.Collection, "sourcePath", srcPath, "destEndpoint", dstFacility.Collection, "destPath", destPath, "fileCount", len(paths))
+		globusResult, err = s.globusClient.TransferFileList(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, paths, isSymlinks, true)
 	} else {
 		// sync folders through globus
-		globusResult, err = s.globusClient.TransferFolderSync(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, false)
+		slog.Info("Submitting transfer task to globus", "sourceEndpoint", srcFacility.Collection, "sourcePath", srcPath, "destEndpoint", dstFacility.Collection, "destPath", destPath)
+		globusResult, err = s.globusClient.TransferFolderSync(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, true)
 	}
+
 	if err != nil {
 		return PostTransferTask400JSONResponse{
 			GeneralErrorResponseJSONResponse: GeneralErrorResponseJSONResponse{

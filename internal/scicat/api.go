@@ -54,3 +54,12 @@ type ScicatDataset struct {
 	OwnerGroup   string `json:"ownerGroup"`
 	SourceFolder string `json:"sourceFolder"`
 }
+
+type DataFile struct {
+	Path string `json:"path"`
+}
+
+type ScicatOrigDatablock struct {
+	Pid          string     `json:"datasetId"`
+	DataFileList []DataFile `json:"dataFileList"`
+}
