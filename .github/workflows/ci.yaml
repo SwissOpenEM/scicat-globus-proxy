@@ -77,3 +77,5 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.github_metadata.outputs.tags }}
           labels: ${{ steps.github_metadata.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.github_metadata.outputs.tags }}
