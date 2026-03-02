@@ -291,7 +291,13 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}, nil
 	}
 
-	s.taskPool.AddTransferTask(globusResult.TaskId, request.Params.ScicatPid, scicatJob.ID)
+	archivalJobInfo := tasks.ArchivalJobInfo{
+		OwnerUser:    scicatUser.Profile.Username,
+		OwnerGroup:   dataset.OwnerGroup,
+		AutoArchive:  *request.Params.AutoArchive,
+		ContactEmail: scicatUser.Profile.Email,
+	}
+	s.taskPool.AddTransferTask(globusResult.TaskId, request.Params.ScicatPid, scicatJob.ID, archivalJobInfo)
 
 	// return response
 	return PostTransferTask200JSONResponse{

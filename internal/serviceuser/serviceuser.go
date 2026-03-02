@@ -12,8 +12,8 @@ import (
 
 type ScicatServiceUser struct {
 	scicatUrl   *string
-	username    *string
-	password    *string
+	Username    *string
+	Password    *string
 	scicatToken *string
 	expiry      *time.Time
 	mutex       *sync.Mutex
@@ -25,8 +25,8 @@ func CreateServiceUser(scicatUrl string, username string, password string) (Scic
 	var mutex sync.Mutex
 	serviceUser := ScicatServiceUser{
 		scicatUrl:   &scicatUrl,
-		username:    &username,
-		password:    &password,
+		Username:    &username,
+		Password:    &password,
 		scicatToken: &emptyString,
 		expiry:      &zeroTime,
 		mutex:       &mutex,
@@ -47,7 +47,7 @@ func (su *ScicatServiceUser) GetToken() (string, error) {
 }
 
 func (su *ScicatServiceUser) refreshToken() error {
-	user, _, err := datasetUtils.AuthenticateUser(http.DefaultClient, *su.scicatUrl+"api/v3", *su.username, *su.password, false)
+	user, _, err := datasetUtils.AuthenticateUser(http.DefaultClient, *su.scicatUrl+"api/v3", *su.Username, *su.Password, false)
 	if err != nil {
 		return err
 	}

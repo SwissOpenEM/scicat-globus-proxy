@@ -10,7 +10,15 @@ import (
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/serviceuser"
 	"github.com/SwissOpenEM/scicat-globus-proxy/jobs"
 	"github.com/paulscherrerinstitute/scicat-cli/v3/datasetIngestor"
+	"github.com/paulscherrerinstitute/scicat-cli/v3/datasetUtils"
 )
+
+type ArchivalJobInfo struct {
+	OwnerUser    string
+	OwnerGroup   string
+	AutoArchive  bool
+	ContactEmail string
+}
 
 type transferTask struct {
 	scicatUrl         *string
@@ -22,7 +30,7 @@ type transferTask struct {
 	taskPollInterval  time.Duration
 	cancel            chan struct{}
 	cleanup           func()
-
+	archivalJobInfo   ArchivalJobInfo
 	// current status
 	bytesTransferred uint
 	filesTransferred uint
@@ -104,7 +112,10 @@ func (t transferTask) updateTask() (bool, error) {
 
 func (t transferTask) finishTask() {
 	token, _ := t.scicatServiceUser.GetToken()
-	err := datasetIngestor.MarkFilesReady(http.DefaultClient, *t.scicatUrl+"api/v3", t.datasetPid, map[string]string{"accessToken": token})
+
+	scicatHost := *t.scicatUrl + "api/v3"
+
+	err := datasetIngestor.MarkFilesReady(http.DefaultClient, scicatHost, t.datasetPid, map[string]string{"accessToken": token})
 	if err != nil {
 		errMsg := err.Error()
 
@@ -126,7 +137,31 @@ func (t transferTask) finishTask() {
 		if err != nil {
 			taskLog(t.scicatJobId, t.globusTaskId, t.datasetPid, int(t.bytesTransferred), int(t.filesTransferred), int(t.filesTotal), jobs.Finished, err)
 		}
+		return
 	}
+
+	user, _, err := datasetUtils.AuthenticateUser(http.DefaultClient, scicatHost, *t.scicatServiceUser.Username, *t.scicatServiceUser.Password, false)
+
+	if err != nil {
+		taskLog(t.scicatJobId, t.globusTaskId, t.datasetPid, int(t.bytesTransferred), int(t.filesTransferred), int(t.filesTotal), jobs.Finished, err)
+		return
+	}
+
+	// create archive job
+	// Create the archiving job as the user that is logged in and not the the service user
+	user["mail"] = t.archivalJobInfo.ContactEmail
+	user["username"] = t.archivalJobInfo.OwnerUser
+
+	// auto archive
+	if t.archivalJobInfo.AutoArchive {
+		copies := 1
+		var executionTime time.Time // unspecified implies immediate execution
+		_, err = datasetUtils.CreateArchivalJob(http.DefaultClient, scicatHost, user, t.archivalJobInfo.OwnerGroup, []string{t.datasetPid}, &copies, &executionTime)
+		if err != nil {
+			taskLog(t.scicatJobId, t.globusTaskId, t.datasetPid, int(t.bytesTransferred), int(t.filesTransferred), int(t.filesTotal), jobs.Finished, err)
+		}
+	}
+
 }
 
 func (t transferTask) cancelTask() error {
