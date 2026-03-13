@@ -294,7 +294,7 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 	archivalJobInfo := tasks.ArchivalJobInfo{
 		OwnerUser:    scicatUser.Profile.Username,
 		OwnerGroup:   dataset.OwnerGroup,
-		AutoArchive:  *request.Params.AutoArchive,
+		AutoArchive:  request.Params.AutoArchive != nil && *request.Params.AutoArchive, // default false
 		ContactEmail: scicatUser.Profile.Email,
 	}
 	s.taskPool.AddTransferTask(globusResult.TaskId, request.Params.ScicatPid, scicatJob.ID, archivalJobInfo)

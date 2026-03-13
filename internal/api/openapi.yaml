@@ -70,11 +70,11 @@ paths:
           required: true
           schema:
             type: string
-        - name: autoArchive 
+        - name: autoArchive
           description: "start archive job after successful transfer"
           in: query
           required: false
-          default: true
+          default: false
           schema:
             type: boolean
             description: start archive job

@@ -226,7 +226,7 @@ func RestoreGlobusTransferJobsFromScicat(scicatUrl string, serviceUser serviceus
 		archiveJobInfo := ArchivalJobInfo{
 			OwnerUser:    job.OwnerUser,
 			OwnerGroup:   job.OwnerGroup,
-			AutoArchive:  true,
+			AutoArchive:  false,
 			ContactEmail: job.ContactEmail,
 		}
 		pool.AddTransferTask(job.JobResultObject.GlobusTaskId, job.JobParams.DatasetList[0].Pid, job.ID, archiveJobInfo)
