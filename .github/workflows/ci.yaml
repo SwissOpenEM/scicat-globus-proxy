@@ -22,7 +22,7 @@ jobs:
       - name: Go linting (golangci-lint)
         uses: golangci/golangci-lint-action@v8
         with:
-          version: v2.3
+          version: v2.4
   go_tests:
     strategy:
       fail-fast: false
