@@ -3,15 +3,14 @@ package api
 import (
 	"embed"
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
 	"os"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/gin-contrib/slog"
 	gin "github.com/gin-gonic/gin"
 	middleware "github.com/oapi-codegen/gin-middleware"
-	sloggin "github.com/samber/slog-gin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -33,13 +32,12 @@ func NewServer(api *ServerHandler, port uint, scicatUrl string) (*http.Server, e
 	// Create gin router
 	r := gin.New()
 
-	// Add the sloggin middleware to all routes
-	config := sloggin.Config{
-		WithRequestBody:  true,
-		WithResponseBody: true,
-	}
+	r.Use(
+		slog.SetLogger(
+			slog.WithSkipPath([]string{"/version", "/health"}),
+			slog.WithRequestHeader(false),
+		))
 
-	r.Use(sloggin.NewWithConfig(slog.Default().With(), config))
 	r.Use(gin.Recovery())
 
 	r.GET("/openapi.yaml", func(c *gin.Context) {
