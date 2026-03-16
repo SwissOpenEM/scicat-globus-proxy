@@ -223,7 +223,13 @@ func RestoreGlobusTransferJobsFromScicat(scicatUrl string, serviceUser serviceus
 		if len(job.JobParams.DatasetList) <= 0 {
 			slog.Warn("job has no datasets associated, so it cannot be resumed", "jobId", job.ID)
 		}
-		pool.AddTransferTask(job.JobResultObject.GlobusTaskId, job.JobParams.DatasetList[0].Pid, job.ID)
+		archiveJobInfo := ArchivalJobInfo{
+			OwnerUser:    job.OwnerUser,
+			OwnerGroup:   job.OwnerGroup,
+			AutoArchive:  true,
+			ContactEmail: job.ContactEmail,
+		}
+		pool.AddTransferTask(job.JobResultObject.GlobusTaskId, job.JobParams.DatasetList[0].Pid, job.ID, archiveJobInfo)
 	}
 
 	return nil

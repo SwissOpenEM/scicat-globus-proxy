@@ -40,7 +40,7 @@ func CreateTaskPool(scicatUrl string, globusClient globus.GlobusClient, scicatSe
 	}
 }
 
-func (tp TaskPool) AddTransferTask(globusTaskId string, datasetPid string, scicatJobId string) pond.Task {
+func (tp TaskPool) AddTransferTask(globusTaskId string, datasetPid string, scicatJobId string, archivalJobInfo ArchivalJobInfo) pond.Task {
 	tp.cancelTask[scicatJobId] = make(chan struct{})
 	task := transferTask{
 		scicatUrl:         &tp.scicatUrl,
@@ -51,6 +51,7 @@ func (tp TaskPool) AddTransferTask(globusTaskId string, datasetPid string, scica
 		scicatJobId:       scicatJobId,
 		taskPollInterval:  tp.taskPollInterval,
 		cancel:            tp.cancelTask[scicatJobId],
+		archivalJobInfo:   archivalJobInfo,
 		cleanup: func() {
 			tp.cancelMutex.Lock()
 			defer tp.cancelMutex.Unlock()
