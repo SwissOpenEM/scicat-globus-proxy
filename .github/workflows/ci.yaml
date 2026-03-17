@@ -40,6 +40,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: Run go generate
+        run: go generate ./...
+      - name: Ensure generated code is up to date
+        run: git diff --exit-code
       - name: Set up gotestfmt
         uses: gotesttools/gotestfmt-action@v2
       - name: Run go tests
