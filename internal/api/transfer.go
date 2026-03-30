@@ -291,10 +291,13 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}, nil
 	}
 
+	// Default backwards compatible behavior is to archive
+	var archive = request.Params.AutoArchive == nil || *request.Params.AutoArchive
+
 	archivalJobInfo := tasks.ArchivalJobInfo{
 		OwnerUser:    scicatUser.Profile.Username,
 		OwnerGroup:   dataset.OwnerGroup,
-		AutoArchive:  *request.Params.AutoArchive,
+		AutoArchive:  archive,
 		ContactEmail: scicatUser.Profile.Email,
 	}
 	s.taskPool.AddTransferTask(globusResult.TaskId, request.Params.ScicatPid, scicatJob.ID, archivalJobInfo)
