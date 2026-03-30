@@ -70,13 +70,13 @@ paths:
           required: true
           schema:
             type: string
-        - name: autoArchive 
+        - name: autoArchive
           description: "start archive job after successful transfer"
           in: query
           required: false
-          default: true
           schema:
             type: boolean
+            default: true
             description: start archive job
       requestBody:
         description: If omitted, transfer the entire dataset source folder. If provided, only transfer the listed files.
