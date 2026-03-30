@@ -8,7 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/goccy/go-yaml v1.19.2
 	github.com/oapi-codegen/gin-middleware v1.0.2
-	github.com/oapi-codegen/oapi-codegen/v2 v2.5.1
+	github.com/oapi-codegen/oapi-codegen/v2 v2.6.0
 	github.com/oapi-codegen/runtime v1.3.0
 	github.com/paulscherrerinstitute/scicat-cli/v3 v3.2.0
 	github.com/stretchr/testify v1.11.1
