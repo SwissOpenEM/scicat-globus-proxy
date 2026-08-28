@@ -46,8 +46,8 @@ github.com/getkin/kin-openapi v0.133.0 h1:pJdmNohVIJ97r4AUFtEXRXwESr8b0bD721u/Tz
 github.com/getkin/kin-openapi v0.133.0/go.mod h1:boAciF6cXk5FhPqe/NQeBTeenbjqU4LhWBf09ILVvWE=
 github.com/gin-contrib/gzip v0.0.6 h1:NjcunTcGAj5CO1gn4N8jHOSIeRFHIbn51z6K+xaN4d4=
 github.com/gin-contrib/gzip v0.0.6/go.mod h1:QOJlmV2xmayAjkNS2Y8NQsMneuRShOU/kjovCXNuzzk=
-github.com/gin-contrib/slog v1.2.0 h1:vAxZfr7knD1ZYK5+pMJLP52sZXIkJXkcRPa/0dx9hSk=
-github.com/gin-contrib/slog v1.2.0/go.mod h1:vYK6YltmpsEFkO0zfRMLTKHrWS3DwUSn0TMpT+kMagI=
+github.com/gin-contrib/slog v1.2.1 h1:tQbsmllW/PNgtvHRdVlI38jLfpN4IFLS7Pb4HgTeiYw=
+github.com/gin-contrib/slog v1.2.1/go.mod h1:f/Ke0A3h4DUh0cQnjR2b/l+i0EmVJ+6VY6GIw3RKtxA=
 github.com/gin-contrib/sse v1.1.0 h1:n0w2GMuUpWDVp7qSpvze6fAu9iRxJY4Hmj6AmBOU05w=
 github.com/gin-contrib/sse v1.1.0/go.mod h1:hxRZ5gVpWMT7Z0B0gSNYqqsSCNIJMjzvm6fqCz9vjwM=
 github.com/gin-gonic/gin v1.12.0 h1:b3YAbrZtnf8N//yjKeU2+MQsh2mY5htkZidOM7O0wG8=
