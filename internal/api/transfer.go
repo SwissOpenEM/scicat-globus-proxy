@@ -30,36 +30,40 @@ func checkAuthorization(scicatUser *scicat.User, srcFacility *Facility, dstFacil
 	if err != nil {
 		return false, "", err
 	}
-	srcAccessValue, err := srcFacility.AccessValue.ExecuteStr(srcContext)
-	if err != nil {
-		return false, "", err
-	}
-	srcAllowed, err := util.CheckProperty(scicatUser, srcAccessPath, srcAccessValue)
-	if err != nil {
-		return false, "", err
-	}
-	if !srcAllowed {
-		slog.Info("User lacks access", "username", scicatUser.Profile.Username, "facility", srcFacility.Name, "accessPath", srcAccessPath, "accessValue", srcAccessValue)
-		return false, fmt.Sprintf("No access to facility %v", srcFacility.Name), nil
+	if srcAccessPath != "" {
+		srcAccessValue, err := srcFacility.AccessValue.ExecuteStr(srcContext)
+		if err != nil {
+			return false, "", err
+		}
+		srcAllowed, err := util.CheckProperty(scicatUser, srcAccessPath, srcAccessValue)
+		if err != nil {
+			return false, "", err
+		}
+		if !srcAllowed {
+			slog.Info("User lacks access", "username", scicatUser.Profile.Username, "facility", srcFacility.Name, "accessPath", srcAccessPath, "accessValue", srcAccessValue)
+			return false, fmt.Sprintf("No access to facility %v", srcFacility.Name), nil
+		}
 	}
 
 	// Destination access
 	dstContext := accessPathContext{Name: dstFacility.Name}
-	dstAccessPath, err := srcFacility.AccessPath.ExecuteStr(dstContext)
+	dstAccessPath, err := dstFacility.AccessPath.ExecuteStr(dstContext)
 	if err != nil {
 		return false, "", err
 	}
-	dstAccessValue, err := srcFacility.AccessValue.ExecuteStr(dstContext)
-	if err != nil {
-		return false, "", err
-	}
-	dstAllowed, err := util.CheckProperty(scicatUser, dstAccessPath, dstAccessValue)
-	if err != nil {
-		return false, "", err
-	}
-	if !dstAllowed {
-		slog.Info("User lacks access", "username", scicatUser.Profile.Username, "facility", dstFacility.Name, "accessPath", dstAccessPath, "accessValue", dstAccessValue)
-		return false, fmt.Sprintf("No access to facility %v", dstFacility.Name), nil
+	if dstAccessPath != "" {
+		dstAccessValue, err := dstFacility.AccessValue.ExecuteStr(dstContext)
+		if err != nil {
+			return false, "", err
+		}
+		dstAllowed, err := util.CheckProperty(scicatUser, dstAccessPath, dstAccessValue)
+		if err != nil {
+			return false, "", err
+		}
+		if !dstAllowed {
+			slog.Info("User lacks access", "username", scicatUser.Profile.Username, "facility", dstFacility.Name, "accessPath", dstAccessPath, "accessValue", dstAccessValue)
+			return false, fmt.Sprintf("No access to facility %v", dstFacility.Name), nil
+		}
 	}
 
 	// Dataset access
