@@ -61,8 +61,8 @@ type FacilityConfig struct {
 	Name            string            `yaml:"name"`
 	Collection      string            `yaml:"collection"`
 	Scopes          []string          `yaml:"scopes,omitempty"`
-	AccessPath      string            `yaml:"accessPath,omitempty"`
-	AccessValue     string            `yaml:"accessValue,omitempty"`
+	AccessPath      *string           `yaml:"accessPath,omitempty"`
+	AccessValue     *string           `yaml:"accessValue,omitempty"`
 	Direction       FacilityDirection `yaml:"direction,omitempty"`
 	SourcePath      string            `yaml:"sourcePath,omitempty"`
 	DestinationPath string            `yaml:"destinationPath,omitempty"`
@@ -70,20 +70,24 @@ type FacilityConfig struct {
 
 // Construct a FacilityConfig with default values
 func NewFacilityConfig() *FacilityConfig {
+	defaultAccessPath := "profile.accessGroups"
+	defaultAccessValue := "{{ .Name }}"
 	return &FacilityConfig{
 		Collection: "",
 		Scopes: []string{
 			"urn:globus:auth:scope:transfer.api.globus.org:all[*https://auth.globus.org/scopes/{{.Collection}}/data_access]",
 		},
-		AccessPath:      "profile.accessGroups",
-		AccessValue:     "{{ .Name }}",
+		AccessPath:      &defaultAccessPath,
+		AccessValue:     &defaultAccessValue,
 		Direction:       DirectionBoth,
 		SourcePath:      "/{{ .RelativeSourceFolder }}",
 		DestinationPath: "/{{ .RelativeSourceFolder }}",
 	}
 }
 
-// Modify a config by overridding any non-zero fields specified in the argument
+// Modify a config by overridding any explicitly-set fields specified in the argument.
+// AccessPath and AccessValue are pointers so that an explicit empty string ("disable
+// this check") can be distinguished from an unset field ("use the default").
 func (base *FacilityConfig) Merge(overrides *FacilityConfig) *FacilityConfig {
 	if base == nil || overrides == nil {
 		return base
@@ -100,10 +104,10 @@ func (base *FacilityConfig) Merge(overrides *FacilityConfig) *FacilityConfig {
 		base.Scopes = make([]string, len(overrides.Scopes))
 		copy(base.Scopes, overrides.Scopes)
 	}
-	if overrides.AccessPath != "" {
+	if overrides.AccessPath != nil {
 		base.AccessPath = overrides.AccessPath
 	}
-	if overrides.AccessValue != "" {
+	if overrides.AccessValue != nil {
 		base.AccessValue = overrides.AccessValue
 	}
 	if overrides.Direction != "" {
