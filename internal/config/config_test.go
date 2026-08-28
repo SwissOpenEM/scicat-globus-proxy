@@ -31,11 +31,41 @@ facilities:
 	assert.Equal(t, "aaaa1111-22bb-cc44-dd5e-666667777777", fac.Collection)
 	assert.Equal(t, DirectionBoth, fac.Direction) // Default
 	assert.Equal(t, 1, len(fac.Scopes))
+	if assert.NotNil(t, fac.AccessPath) {
+		assert.Equal(t, "profile.accessGroups", *fac.AccessPath) // Default
+	}
+	if assert.NotNil(t, fac.AccessValue) {
+		assert.Equal(t, "{{ .Name }}", *fac.AccessValue) // Default
+	}
 
 	scopes, err := conf.GetGlobusScopes()
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(scopes))
 	assert.Equal(t, []string{"urn:globus:auth:scope:transfer.api.globus.org:all[*https://auth.globus.org/scopes/aaaa1111-22bb-cc44-dd5e-666667777777/data_access]"}, scopes)
+}
+
+func TestEmptyAccessPathOverridesDefault(t *testing.T) {
+	content := `
+scicatUrl: "http://backend.localhost"
+port: 1234
+facilities:
+  - name: "TestFacility"
+    collection: aaaa1111-22bb-cc44-dd5e-666667777777
+    accessPath: ""
+    accessValue: ""
+`
+
+	conf, err := ReadConfigFromBytes([]byte(content))
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(conf.Facilities))
+
+	fac := conf.Facilities[0]
+	if assert.NotNil(t, fac.AccessPath) {
+		assert.Equal(t, "", *fac.AccessPath)
+	}
+	if assert.NotNil(t, fac.AccessValue) {
+		assert.Equal(t, "", *fac.AccessValue)
+	}
 }
 
 func TestYamlMerging(t *testing.T) {

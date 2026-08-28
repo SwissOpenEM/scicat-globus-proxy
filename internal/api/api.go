@@ -38,11 +38,11 @@ func NewFacility(config config.FacilityConfig) (*Facility, error) {
 	facility.Name = config.Name
 	facility.Collection = config.Collection
 	facility.Direction = config.Direction
-	facility.AccessPath, err = util.NewTypedTemplate[accessPathContext](config.AccessPath)
+	facility.AccessPath, err = util.NewTypedTemplate[accessPathContext](*config.AccessPath)
 	if err != nil {
 		return nil, err
 	}
-	facility.AccessValue, err = util.NewTypedTemplate[accessPathContext](config.AccessValue)
+	facility.AccessValue, err = util.NewTypedTemplate[accessPathContext](*config.AccessValue)
 	if err != nil {
 		return nil, err
 	}

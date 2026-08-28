@@ -45,7 +45,7 @@ You can find an example of the settings at [`scicat-globus-proxy-config.example.
   - `Scopes` - the globus scopes to use for the client connection. Access is required to transfer api and specific collections. Default: `["urn:globus:auth:scope:transfer.api.globus.org:all[*https://auth.globus.org/scopes/{{.Collection}}/data_access]"]`. Available template variables:
     - `Name`
     - `Collection`
-  - `accessPath` - a path relative to the OAuth identity to find authentication information granting access to this facility. Should point to an array of strings. Default: `profile.accessGroups`
+  - `accessPath` - a path relative to the OAuth identity to find authentication information granting access to this facility. Should point to an array of strings. Default: `profile.accessGroups`. Set explicitly to `""` to disable the access check for this facility.
   - `accessValue` - a required string within the identy object pointed to by `accessPath` (eg a group name). Default: `{{.Name}}`. Available template variables:
     - `Name`
   - `direction` - valid transfer directions for this facility.
