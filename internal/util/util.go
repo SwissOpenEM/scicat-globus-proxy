@@ -11,12 +11,12 @@ import (
 // Dynamically resolve a dot-separated property path and check if the result matches a value
 func CheckProperty(data any, path string, value any) (bool, error) {
 	splitPath := strings.Split(path, ".")
-	for i, p := range splitPath {
-		splitPath[i] = Capitalize(p)
-	}
 	return checkProperty(data, splitPath, value)
 }
 
+// Resolve the property path within data. If path is valid, check that the value either
+// matches or is contained within the matched array. If path doesn't resolve, return an
+// error.
 func checkProperty(data any, path []string, value any) (bool, error) {
 	// base case, fully resolved
 	if len(path) == 0 {
@@ -42,14 +42,26 @@ func checkProperty(data any, path []string, value any) (bool, error) {
 	// resolve the first path item & recurse
 	fieldName := path[0]
 	v := reflect.Indirect(reflect.ValueOf(data))
-	if v.Kind() != reflect.Struct {
+	switch v.Kind() {
+	case reflect.Struct:
+		// Struct fields follow Go naming (exported/capitalized), while the
+		// configured path uses the lowerCamelCase convention of the JSON tags.
+		newData := v.FieldByName(Capitalize(fieldName))
+		if newData.Kind() == reflect.Invalid {
+			return false, fmt.Errorf("can't get field %s", fieldName)
+		}
+		return checkProperty(newData.Interface(), path[1:], value)
+	case reflect.Map:
+		// Maps (e.g. arbitrary OIDC claims) are keyed exactly as they appear in
+		// the source JSON, so look them up without capitalizing.
+		newData := v.MapIndex(reflect.ValueOf(fieldName))
+		if !newData.IsValid() {
+			return false, fmt.Errorf("can't get field %s", fieldName)
+		}
+		return checkProperty(newData.Interface(), path[1:], value)
+	default:
 		return false, fmt.Errorf("can't get field %s", fieldName)
 	}
-	newData := v.FieldByName(fieldName)
-	if newData.Kind() == reflect.Invalid {
-		return false, fmt.Errorf("can't get field %s", fieldName)
-	}
-	return checkProperty(newData.Interface(), path[1:], value)
 }
 
 // Capitalize the first letter of a string

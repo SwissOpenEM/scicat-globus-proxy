@@ -19,28 +19,9 @@ type User struct {
 			Value string `json:"value"`
 		} `json:"emails"`
 		AccessGroups []string `json:"accessGroups"`
-		OidcClaims   struct {
-			Exp               int      `json:"exp"`
-			Iat               int      `json:"iat"`
-			AuthTime          int      `json:"auth_time"`
-			Jti               string   `json:"jti"`
-			Iss               string   `json:"iss"`
-			Aud               string   `json:"aud"`
-			Sub               string   `json:"sub"`
-			Typ               string   `json:"typ"`
-			Azp               string   `json:"azp"`
-			Sid               string   `json:"sid"`
-			AtHash            string   `json:"at_hash"`
-			Acr               string   `json:"acr"`
-			EmailVerified     bool     `json:"email_verified"`
-			AccessGroups      []string `json:"accessGroups"`
-			Name              string   `json:"name"`
-			PreferredUsername string   `json:"preferred_username"`
-			GivenName         string   `json:"given_name"`
-			FamilyName        string   `json:"family_name"`
-			Email             string   `json:"email"`
-		} `json:"oidcClaims"`
-		ID_ string `json:"_id"`
+		// Claims from the user's last OIDC login
+		OidcClaims map[string]any `json:"oidcClaims"`
+		ID_        string         `json:"_id"`
 	} `json:"profile"`
 	Provider    string    `json:"provider"`
 	UserID      string    `json:"userId"`
