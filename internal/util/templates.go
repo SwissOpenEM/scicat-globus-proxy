@@ -4,6 +4,8 @@ package util
 import (
 	"bytes"
 	"io"
+	"net/url"
+	"path"
 	"strings"
 	"text/template"
 )
@@ -23,11 +25,20 @@ func (tpl *TypedTemplate[T]) ExecuteStr(data T) (string, error) {
 	return buf.String(), err
 }
 
-// Functions to make available in all templates
+// Functions to make available in all templates.
 var templateFuncs = template.FuncMap{
 	"replace": func(s string, query string, repl string) string {
 		return strings.ReplaceAll(s, query, repl)
 	},
+	"toUpper":     strings.ToUpper,
+	"toLower":     strings.ToLower,
+	"trimPrefix":  strings.TrimPrefix,
+	"trimSuffix":  strings.TrimSuffix,
+	"trimSpace":   strings.TrimSpace,
+	"pathEscape":  url.PathEscape,
+	"queryEscape": url.QueryEscape,
+	"base":        path.Base,
+	"dir":         path.Dir,
 }
 
 func NewTypedTemplate[T any](templateStr string) (*TypedTemplate[T], error) {
