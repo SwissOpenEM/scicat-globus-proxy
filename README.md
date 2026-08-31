@@ -62,6 +62,19 @@ You can find an example of the settings at [`scicat-globus-proxy-config.example.
     - `DatasetFolder`:        base name of `sourceFolder`
     - `Username`:             username of the current scicat user
   - `destinationPath` - path *relative to the globus endpoint root* for datasets when this facility is used as the destination for transfers. Default: `/{{ .RelativeSourceFolder }}`. Available template variables are the same as `sourcePath`.
+
+All of the templates above (`Scopes`, `accessValue`, `sourcePath`, `destinationPath`) additionally have the following functions available, called as e.g. `{{ toUpper .Name }}`:
+
+- `replace $s $query $repl` - `$s` with all occurrences of `$query` replaced by `$repl`
+- `toUpper $s` - `$s` converted to upper case
+- `toLower $s` - `$s` converted to lower case
+- `trimPrefix $s $prefix` - `$s` with `$prefix` removed, if present
+- `trimSuffix $s $suffix` - `$s` with `$suffix` removed, if present
+- `trimSpace $s` - `$s` with leading/trailing whitespace removed
+- `pathEscape $s` - `$s` escaped for safe use as a URL path segment
+- `queryEscape $s` - `$s` escaped for safe use as a URL query parameter
+- `base $s` - the last element of path `$s`
+- `dir $s` - all but the last element of path `$s` (its parent directory)
 - `task` - a set of settings for configuring the handling of transfer tasks. (optional)
   - `maxConcurrency` - maximum number of transfer tasks executed in parallel. (default: 10)
   - `queueSize` - how many tasks can be put in a queue (0 is infinite). (default: 0)
