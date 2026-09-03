@@ -42,9 +42,9 @@ read_collections () {
     done
 }
 
-read_collections "${FILES[@]}" \
-| sort -u \
-| while read NAME COLLECTION; do
+RETURN_CODE=0
+
+while read -r NAME COLLECTION; do
     token=$(
         curl -s -u "${GLOBUS_CLI_CLIENT_ID}:${GLOBUS_CLI_CLIENT_SECRET}" --basic \
             -XPOST https://auth.globus.org/v2/oauth2/token   \
@@ -56,8 +56,10 @@ read_collections "${FILES[@]}" \
         printf "%s %-15s %-8s %s\n" "✅" "$NAME" success "$COLLECTION"
     else
         printf "%s %-15s %-8s %s\n" "❌" "$NAME" "error:$err_status" "$COLLECTION"
+        RETURN_CODE=1
     fi
     if [[ $VERBOSE == true ]]; then
         echo "$token" | yq -P -I 2 .
     fi
-done
+done < <(read_collections "${FILES[@]}" | sort -u)
+exit $RETURN_CODE
