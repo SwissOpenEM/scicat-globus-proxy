@@ -187,10 +187,11 @@ type globusContext struct {
 	Collection string
 }
 
-// Get a list of all globus scopes for all facilities
-func (conf *Config) GetGlobusScopes() ([]string, error) {
-	scopes := make([]string, 0, len(conf.Facilities))
+// Get the rendered globus scopes for each facility, keyed by facility name
+func (conf *Config) GetGlobusScopesByFacility() (map[string][]string, error) {
+	scopesByFacility := make(map[string][]string, len(conf.Facilities))
 	for _, facility := range conf.Facilities {
+		scopes := make([]string, 0, len(facility.Scopes))
 		for _, scopeTemplate := range facility.Scopes {
 			// Make the facility configuration available in the scope for templating
 			context := globusContext{
@@ -203,6 +204,20 @@ func (conf *Config) GetGlobusScopes() ([]string, error) {
 			}
 			scopes = append(scopes, scope)
 		}
+		scopesByFacility[facility.Name] = scopes
+	}
+	return scopesByFacility, nil
+}
+
+// Get a list of all globus scopes for all facilities
+func (conf *Config) GetGlobusScopes() ([]string, error) {
+	scopesByFacility, err := conf.GetGlobusScopesByFacility()
+	if err != nil {
+		return nil, err
+	}
+	scopes := make([]string, 0, len(conf.Facilities))
+	for _, facility := range conf.Facilities {
+		scopes = append(scopes, scopesByFacility[facility.Name]...)
 	}
 	return scopes, nil
 }
