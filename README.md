@@ -98,3 +98,23 @@ The docker image expects a configuration file to be mounted at `/service/scicat-
 docker build -t scicat-globus-proxy .
 docker run --rm -v $PWD/scicat-globus-proxy-config.yaml:/service/scicat-globus-proxy-config.yaml --env-file=.env scicat-globus-proxy
 ```
+
+## Scripts
+
+### `scripts/check_collections.sh`
+
+Checks every collection referenced by one or more config files to verify that the Globus service account's client credentials can obtain a data-access token for it. Useful for validating that a config's `facilities` are all properly authorized before deploying.
+
+Requires the `yq` and `curl` tools, plus the following environment variables:
+
+- `GLOBUS_CLI_CLIENT_ID`
+- `GLOBUS_CLI_CLIENT_SECRET`
+
+```sh
+./scripts/check_collections.sh [-v] [configs...]
+```
+
+- `configs...` - one or more config YAML files to check. Defaults to `scicat-globus-proxy-config.yaml` if omitted.
+- `-v`, `--verbose` - also print the full token response (or error) for each collection.
+
+For each unique `(name, collection)` pair found in the config(s), it prints ✅ on success or ❌ on failure alongside the facility name and collection ID.
