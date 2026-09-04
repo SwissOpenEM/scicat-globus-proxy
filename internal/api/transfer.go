@@ -115,6 +115,14 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 		}, nil
 	}
 
+	globusClient, err := s.globusClientManager.Client(ctx, srcFacility.Name, dstFacility.Name)
+	if err != nil {
+		return PostTransferTask503JSONResponse{
+			Message: getPointerOrNil("source or destination facility is temporarily unavailable"),
+			Details: getPointerOrNil(err.Error()),
+		}, nil
+	}
+
 	// User should have been cached in the context from the auth middleware
 	u, ok := ginCtx.Get("scicatUser")
 	if !ok {
@@ -256,11 +264,11 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 			isSymlinks[i] = file.IsSymlink
 		}
 		slog.Info("Submitting transfer task to globus with filelist", "sourceEndpoint", srcFacility.Collection, "sourcePath", srcPath, "destEndpoint", dstFacility.Collection, "destPath", destPath, "fileCount", len(paths))
-		globusResult, err = s.globusClient.TransferFileList(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, paths, isSymlinks, true)
+		globusResult, err = globusClient.TransferFileList(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, paths, isSymlinks, true)
 	} else {
 		// sync folders through globus
 		slog.Info("Submitting transfer task to globus", "sourceEndpoint", srcFacility.Collection, "sourcePath", srcPath, "destEndpoint", dstFacility.Collection, "destPath", destPath)
-		globusResult, err = s.globusClient.TransferFolderSync(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, true)
+		globusResult, err = globusClient.TransferFolderSync(srcFacility.Collection, srcPath, dstFacility.Collection, destPath, true)
 	}
 
 	if err != nil {
@@ -275,7 +283,7 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 	// Log in to globus
 	serviceUserToken, err := s.scicatServiceUser.GetToken()
 	if err != nil {
-		_, _ = s.globusClient.TransferCancelTaskByID(globusResult.TaskId) // attempt to cancel transfer
+		_, _ = globusClient.TransferCancelTaskByID(globusResult.TaskId) // attempt to cancel transfer
 		return PostTransferTask500JSONResponse{
 			Message: getPointerOrNil("service user login failed"),
 			Details: getPointerOrNil(err.Error()),
@@ -288,7 +296,7 @@ func (s ServerHandler) PostTransferTask(ctx context.Context, request PostTransfe
 	//   remove this TODO.
 	scicatJob, err := tasks.CreateGlobusTransferScicatJob(s.scicatUrl, serviceUserToken, dataset.OwnerGroup, params.Pid, "")
 	if err != nil {
-		_, _ = s.globusClient.TransferCancelTaskByID(globusResult.TaskId) // attempt to cancel transfer
+		_, _ = globusClient.TransferCancelTaskByID(globusResult.TaskId) // attempt to cancel transfer
 		return PostTransferTask500JSONResponse{
 			Message: getPointerOrNil("failed creating transfer job in SciCat"),
 			Details: getPointerOrNil(err.Error()),

@@ -1,12 +1,14 @@
 package tasks
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/SwissOpenEM/globus"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/globusauth"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/serviceuser"
 	"github.com/SwissOpenEM/scicat-globus-proxy/jobs"
 	"github.com/paulscherrerinstitute/scicat-cli/v3/datasetIngestor"
@@ -21,16 +23,16 @@ type ArchivalJobInfo struct {
 }
 
 type transferTask struct {
-	scicatUrl         *string
-	globusClient      globus.GlobusClient
-	scicatServiceUser serviceuser.ScicatServiceUser
-	globusTaskId      string
-	datasetPid        string
-	scicatJobId       string
-	taskPollInterval  time.Duration
-	cancel            chan struct{}
-	cleanup           func()
-	archivalJobInfo   ArchivalJobInfo
+	scicatUrl           *string
+	globusClientManager *globusauth.ClientManager
+	scicatServiceUser   serviceuser.ScicatServiceUser
+	globusTaskId        string
+	datasetPid          string
+	scicatJobId         string
+	taskPollInterval    time.Duration
+	cancel              chan struct{}
+	cleanup             func()
+	archivalJobInfo     ArchivalJobInfo
 	// current status
 	bytesTransferred uint
 	filesTransferred uint
@@ -64,7 +66,8 @@ func (t transferTask) execute() {
 }
 
 func (t transferTask) updateTask() (bool, error) {
-	bytesTransferred, filesTransferred, totalFiles, completed, err := checkTransfer(t.globusClient, t.globusTaskId)
+	client := t.globusClientManager.CurrentClient(context.Background())
+	bytesTransferred, filesTransferred, totalFiles, completed, err := checkTransfer(client, t.globusTaskId)
 
 	status := jobs.Transferring
 	statusCode := "002"
@@ -170,7 +173,8 @@ func (t transferTask) cancelTask() error {
 	statusMessage := "cancelled"
 	errMsg := ""
 
-	_, err := t.globusClient.TransferCancelTaskByID(t.globusTaskId)
+	client := t.globusClientManager.CurrentClient(context.Background())
+	_, err := client.TransferCancelTaskByID(t.globusTaskId)
 	if err != nil {
 		status = jobs.Failed
 		statusCode = "996"

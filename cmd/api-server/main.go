@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/SwissOpenEM/globus"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/api"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/config"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/globusauth"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/serviceuser"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/tasks"
 )
@@ -58,17 +58,13 @@ func main() {
 	}
 
 	// Initialize Globus user
-	globusScopes, err := conf.GetGlobusScopes()
+	facilityScopes, err := conf.GetGlobusScopesByFacility()
 	if err != nil {
 		slog.Error("error reading configuration", "error", err)
 		os.Exit(1)
 	}
 
-	globusClient, err := globus.AuthCreateServiceClient(context.Background(), globusClientId, globusClientSecret, globusScopes)
-	if err != nil {
-		slog.Error("couldn't create globus client", "error", err)
-		os.Exit(1)
-	}
+	globusClientManager := globusauth.NewClientManager(context.Background(), globusClientId, globusClientSecret, facilityScopes, nil)
 
 	// Initialize task pool
 	maxConcurrency := conf.Task.MaxConcurrency
@@ -76,7 +72,7 @@ func main() {
 		maxConcurrency = 10
 	}
 
-	taskPool := tasks.CreateTaskPool(conf.ScicatUrl, globusClient, serviceUser, maxConcurrency, conf.Task.QueueSize, conf.Task.PollInterval)
+	taskPool := tasks.CreateTaskPool(conf.ScicatUrl, globusClientManager, serviceUser, maxConcurrency, conf.Task.QueueSize, conf.Task.PollInterval)
 
 	err = tasks.RestoreGlobusTransferJobsFromScicat(conf.ScicatUrl, serviceUser, taskPool)
 	if err != nil {
@@ -97,7 +93,7 @@ func main() {
 		facilities[facConf.Name] = *facility
 	}
 
-	serverHandler, err := api.NewServerHandler(version, globusClient, conf.ScicatUrl, serviceUser, &facilities, taskPool)
+	serverHandler, err := api.NewServerHandler(version, globusClientManager, conf.ScicatUrl, serviceUser, &facilities, taskPool)
 	if err != nil {
 		slog.Error("couldn't create server handler", "error", err)
 		os.Exit(1)

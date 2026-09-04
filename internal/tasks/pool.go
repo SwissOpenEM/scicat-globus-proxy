@@ -5,19 +5,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SwissOpenEM/globus"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/globusauth"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/serviceuser"
 	"github.com/alitto/pond/v2"
 )
 
 type TaskPool struct {
-	scicatUrl         string
-	globusClient      globus.GlobusClient
-	scicatServiceUser serviceuser.ScicatServiceUser
-	pool              pond.Pool
-	taskPollInterval  time.Duration
-	cancelTask        map[string]chan struct{}
-	cancelMutex       *sync.Mutex
+	scicatUrl           string
+	globusClientManager *globusauth.ClientManager
+	scicatServiceUser   serviceuser.ScicatServiceUser
+	pool                pond.Pool
+	taskPollInterval    time.Duration
+	cancelTask          map[string]chan struct{}
+	cancelMutex         *sync.Mutex
 }
 
 type JobNotExistError struct {
@@ -28,30 +28,30 @@ func (e *JobNotExistError) Error() string {
 	return e.msg
 }
 
-func CreateTaskPool(scicatUrl string, globusClient globus.GlobusClient, scicatServiceUser serviceuser.ScicatServiceUser, maxConcurrency int, queueSize int, taskPollInterval uint) TaskPool {
+func CreateTaskPool(scicatUrl string, globusClientManager *globusauth.ClientManager, scicatServiceUser serviceuser.ScicatServiceUser, maxConcurrency int, queueSize int, taskPollInterval uint) TaskPool {
 	return TaskPool{
-		scicatUrl:         scicatUrl,
-		globusClient:      globusClient,
-		scicatServiceUser: scicatServiceUser,
-		pool:              pond.NewPool(maxConcurrency, pond.WithQueueSize(queueSize)),
-		taskPollInterval:  time.Duration(taskPollInterval) * time.Second,
-		cancelTask:        map[string]chan struct{}{},
-		cancelMutex:       &sync.Mutex{},
+		scicatUrl:           scicatUrl,
+		globusClientManager: globusClientManager,
+		scicatServiceUser:   scicatServiceUser,
+		pool:                pond.NewPool(maxConcurrency, pond.WithQueueSize(queueSize)),
+		taskPollInterval:    time.Duration(taskPollInterval) * time.Second,
+		cancelTask:          map[string]chan struct{}{},
+		cancelMutex:         &sync.Mutex{},
 	}
 }
 
 func (tp TaskPool) AddTransferTask(globusTaskId string, datasetPid string, scicatJobId string, archivalJobInfo ArchivalJobInfo) pond.Task {
 	tp.cancelTask[scicatJobId] = make(chan struct{})
 	task := transferTask{
-		scicatUrl:         &tp.scicatUrl,
-		globusClient:      tp.globusClient,
-		scicatServiceUser: tp.scicatServiceUser,
-		globusTaskId:      globusTaskId,
-		datasetPid:        datasetPid,
-		scicatJobId:       scicatJobId,
-		taskPollInterval:  tp.taskPollInterval,
-		cancel:            tp.cancelTask[scicatJobId],
-		archivalJobInfo:   archivalJobInfo,
+		scicatUrl:           &tp.scicatUrl,
+		globusClientManager: tp.globusClientManager,
+		scicatServiceUser:   tp.scicatServiceUser,
+		globusTaskId:        globusTaskId,
+		datasetPid:          datasetPid,
+		scicatJobId:         scicatJobId,
+		taskPollInterval:    tp.taskPollInterval,
+		cancel:              tp.cancelTask[scicatJobId],
+		archivalJobInfo:     archivalJobInfo,
 		cleanup: func() {
 			tp.cancelMutex.Lock()
 			defer tp.cancelMutex.Unlock()

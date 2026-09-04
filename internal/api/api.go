@@ -5,21 +5,21 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/SwissOpenEM/globus"
 	config "github.com/SwissOpenEM/scicat-globus-proxy/internal/config"
+	"github.com/SwissOpenEM/scicat-globus-proxy/internal/globusauth"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/serviceuser"
 	"github.com/SwissOpenEM/scicat-globus-proxy/internal/tasks"
 	util "github.com/SwissOpenEM/scicat-globus-proxy/internal/util"
 )
 
 type ServerHandler struct {
-	version           string
-	globusClient      globus.GlobusClient
-	scicatUrl         string
-	scicatServiceUser serviceuser.ScicatServiceUser
-	facilities        map[string]Facility
-	taskPool          tasks.TaskPool
-	addTaskMutex      *sync.Mutex
+	version             string
+	globusClientManager *globusauth.ClientManager
+	scicatUrl           string
+	scicatServiceUser   serviceuser.ScicatServiceUser
+	facilities          map[string]Facility
+	taskPool            tasks.TaskPool
+	addTaskMutex        *sync.Mutex
 }
 
 type Facility struct {
@@ -61,26 +61,25 @@ var _ StrictServerInterface = ServerHandler{}
 
 func NewServerHandler(
 	version string,
-	globusClient globus.GlobusClient,
+	globusClientManager *globusauth.ClientManager,
 	scicatUrl string,
 	scicatServiceUser serviceuser.ScicatServiceUser,
 	facilities *map[string]Facility,
 	taskPool tasks.TaskPool) (ServerHandler, error) {
 	// create server with service client
-	var err error
-	if !globusClient.IsClientSet() {
-		return ServerHandler{}, fmt.Errorf("AUTH error: Client is nil")
+	if globusClientManager == nil {
+		return ServerHandler{}, fmt.Errorf("AUTH error: globus client manager is nil")
 	}
 
 	return ServerHandler{
-		version:           version,
-		globusClient:      globusClient,
-		scicatUrl:         scicatUrl,
-		scicatServiceUser: scicatServiceUser,
-		facilities:        *facilities,
-		taskPool:          taskPool,
-		addTaskMutex:      &sync.Mutex{},
-	}, err
+		version:             version,
+		globusClientManager: globusClientManager,
+		scicatUrl:           scicatUrl,
+		scicatServiceUser:   scicatServiceUser,
+		facilities:          *facilities,
+		taskPool:            taskPool,
+		addTaskMutex:        &sync.Mutex{},
+	}, nil
 }
 
 // Helper to get a pointer to a literal value
