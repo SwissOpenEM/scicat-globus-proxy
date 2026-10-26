@@ -9,7 +9,7 @@ require (
 	github.com/goccy/go-yaml v1.19.2
 	github.com/oapi-codegen/gin-middleware v1.1.0
 	github.com/oapi-codegen/oapi-codegen/v2 v2.8.0
-	github.com/oapi-codegen/runtime v1.7.0
+	github.com/oapi-codegen/runtime v1.8.0
 	github.com/paulscherrerinstitute/scicat-cli/v3 v3.2.0
 	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/files v1.0.1
